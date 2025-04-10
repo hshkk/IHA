@@ -58,7 +58,10 @@ library
     import:           warnings
 
     -- Modules exported by the library.
-    exposed-modules:  MyLib
+    exposed-modules: 
+        Calla
+        Calla.Abstract
+        Calla.Semantics
 
     -- Modules included in this library but not exported.
     -- other-modules:
@@ -67,7 +70,9 @@ library
     -- other-extensions:
 
     -- Other library packages from which modules are imported.
-    build-depends:    base ^>=4.17.2.1
+    build-depends:    
+        base ^>=4.17.2.1,
+        containers
 
     -- Directories containing source files.
     hs-source-dirs:   src
