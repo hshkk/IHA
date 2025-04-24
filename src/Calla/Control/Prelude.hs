@@ -5,7 +5,7 @@ module Calla.Control.Prelude (
 import Calla.Data.Chromatic (Chromatic (..), Diatonic (..), Diatone, Semitone)
 
 unchroma :: Chromatic a -> (Semitone, Diatone, a)
-unchroma (C s (D d x)) = (s, d, x)
+unchroma (C s (D d a)) = (s, d, a)
 
 chroma :: (Semitone, Diatone, a) -> Chromatic a
-chroma (s, d, x) = C s (D d x)
+chroma (s, d, a) = C s (D d a)

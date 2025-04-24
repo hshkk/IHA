@@ -1,32 +1,20 @@
+{-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE PatternSynonyms #-}
 
 module Calla.Data.Chordal (
-    Key, Mode (..),
-    Analysis, pattern Analysis, analysis,
+    Mode (..), Key,
     Variation (..),
-    Progression
+    Analysis, pattern Analysis
 ) where
 
 import Control.Exception (assert)
-import Data.Function (on)
-import Data.Set (Set)
+import Data.Function (on, (&))
+import Data.List (nub, sort)
 
-import qualified Data.Set as Set
+import Calla.Data.Chromatic
 
-import Calla.Data.Chromatic (Chromatic)
-import Calla.Data.Temporal (Duration, Copuntal)
-
+data Mode = Maj | Min deriving (Eq, Ord)
 type Key  = Chromatic Mode
-data Mode = Maj | Min 
-    deriving (Ord, Eq)
-
--- | Represents the symbols of Roman numeric analysis as a 3-tuple of:
---
--- [Key] The denotation of scale degree and mode.
--- [Modifications] Diminutions, augmentations, added/omitted tones, inversions, and secondary chords.
---
--- For example, @viio7@ would be encoded as @(7, L, {Dim, Add 7})@.
-data Analysis = Analysis Key (Set Variation) deriving Eq
 
 -- | Represents the set of possible chord suffixes, or *variations*.
 --
@@ -37,24 +25,39 @@ data Analysis = Analysis Key (Set Variation) deriving Eq
 -- [Inversion] Rearranges the order of notes in the chord.
 -- [Application] Refers to secondary chords "borrowed" from other keys.
 data Variation = Dim | Aug
+               | Snd Key
                | Add Int | Sub Int
                | Inv Int
-               | Snd Key
-               deriving (Ord, Eq)
+               deriving (Eq, Ord)
 
--- | Constructs a Roman numeric analysis with notational restrictions.
-analysis :: Key -> Set Variation -> Analysis
-analysis x vs = Analysis x (V vs)
-
--- | Restricts a set of variations such that diminishment and augmentation may not coexist.
+-- | Transforms a list of variations into an ordered set.
+-- 
+-- Then, aseertions are made such that: 
+--  - Diminishment and augmentation may not coexist.
+--  - Multiple inversions may not coexist.
+--  - Multiple secondaries may not coexist.
 --
 -- >>> V $ Set.fromList [Dim]
 -- fromList [Dim]
 --
 -- >>> V $ Set.fromList [Dim, Aug]
 -- Assertion failed
-pattern V :: Set Variation -> Set Variation
-pattern V vs <- vs where
-    V vs = assert (on (||) (`Set.notMember` vs) Dim Aug) vs
+verify :: [Variation] -> [Variation]
+verify vs = sort (nub vs) & assert (on (||) (`notElem` vs) Dim Aug)
+                          & assert (length [i | i@(Inv _) <- vs] == 1)
+                          & assert (length [s | s@(Snd _) <- vs] == 1)
 
-type Progression = Copuntal Analysis
+{-# COMPLETE Analysis #-}
+
+-- | Represents the symbols of Roman numeric analysis as a 3-tuple of:
+--
+-- [Key] The denotation of scale degree and mode.
+-- [Modifications] Diminutions, augmentations, added/omitted tones, inversions, and secondary chords.
+--
+-- For example, @viio7@ would be encoded as @(7, L, {Dim, Add 7})@.
+data Analysis = A Key [Variation]
+
+-- | Constructs a Roman numeric analysis with notational restrictions.
+pattern Analysis :: Key -> [Variation] -> Analysis
+pattern Analysis k vs  <- A k vs
+    where Analysis k vs = A k (verify vs)

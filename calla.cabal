@@ -78,7 +78,6 @@ library
     -- Other library packages from which modules are imported.
     build-depends:    
         base ^>=4.17.2.1,
-        containers,
         extra,
         prettyprinter
 

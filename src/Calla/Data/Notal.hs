@@ -1,14 +1,13 @@
 {-# LANGUAGE FlexibleInstances #-}
 
+{-# OPTIONS_GHC -Wno-incomplete-patterns #-}
+{-# OPTIONS_GHC -Wno-orphans #-}
+
 module Calla.Data.Notal (
-    Note,
-    Music
+    Octave, Note
 ) where
 
 import Calla.Data.Chromatic (Chromatic (..))
-import Calla.Data.Temporal (Contrapuntal)
 
-type Note   = Chromatic Octave
 type Octave = Int
-
-type Music = Contrapuntal Note
+type Note   = Chromatic Octave
