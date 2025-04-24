@@ -60,9 +60,14 @@ library
     -- Modules exported by the library.
     exposed-modules: 
         Calla
-        Calla.Prettyprinter
-        Calla.Semantics
-        Calla.Internal.Chromatic
+        Calla.Control.Prelude
+        Calla.Control.Semantics
+        Calla.Data.Chromatic
+        Calla.Data.Chordal
+        Calla.Data.Inference
+        Calla.Data.Notal
+        Calla.Data.Temporal
+        Calla.Text.Prettyprinter
 
     -- Modules included in this library but not exported.
     -- other-modules:

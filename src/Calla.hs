@@ -1,9 +1,9 @@
 module Calla (
-    module Calla.Internal.Chromatic,
-    module Calla.Prettyprinter,
-    module Calla.Semantics
+    module Calla.Control.Semantics,
+    module Calla.Data.Chromatic,
+    module Calla.Text.Prettyprinter
 ) where
 
-import Calla.Internal.Chromatic
-import Calla.Prettyprinter
-import Calla.Semantics
+import Calla.Control.Semantics
+import Calla.Data.Chromatic
+import Calla.Text.Prettyprinter
