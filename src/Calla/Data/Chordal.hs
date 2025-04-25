@@ -43,9 +43,10 @@ data Variation = Dim | Aug
 -- >>> V $ Set.fromList [Dim, Aug]
 -- Assertion failed
 verify :: [Variation] -> [Variation]
-verify vs = sort (nub vs) & assert (on (||) (`notElem` vs) Dim Aug)
-                          & assert (length [i | i@(Inv _) <- vs] == 1)
-                          & assert (length [s | s@(Snd _) <- vs] == 1)
+verify vs = let vs' = sort (nub vs) in
+    vs' & assert (on (||) (`notElem` vs') Dim Aug)
+        & assert (length [i | i@(Inv _) <- vs'] <= 1)
+        & assert (length [s | s@(Snd _) <- vs'] <= 1)
 
 {-# COMPLETE Analysis #-}
 
@@ -55,9 +56,9 @@ verify vs = sort (nub vs) & assert (on (||) (`notElem` vs) Dim Aug)
 -- [Modifications] Diminutions, augmentations, added/omitted tones, inversions, and secondary chords.
 --
 -- For example, @viio7@ would be encoded as @(7, L, {Dim, Add 7})@.
-data Analysis = A Key [Variation]
+data Analysis = A_ Key [Variation]
 
 -- | Constructs a Roman numeric analysis with notational restrictions.
 pattern Analysis :: Key -> [Variation] -> Analysis
-pattern Analysis k vs  <- A k vs
-    where Analysis k vs = A k (verify vs)
+pattern Analysis k vs  <- A_ k vs
+    where Analysis k vs = A_ k (verify vs)

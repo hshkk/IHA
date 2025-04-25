@@ -16,30 +16,30 @@ import Calla.Data.Notal (Note)
 type Duration = Ratio Int
 
 data Sequence a
-    = U a Duration
-    | S (Sequence a) (Sequence a)
-    | P (Sequence a) (Sequence a)
+    = U_ a Duration
+    | S_ (Sequence a) (Sequence a)
+    | P_ (Sequence a) (Sequence a)
 
-class Serial a
-class Parallel a
+class Serial_ a
+class Parallel_ a
 
-instance Serial Analysis
+instance Serial_ Analysis
 
-instance Serial Note
-instance Parallel Note
+instance Serial_ Note
+instance Parallel_ Note
 
 {-# COMPLETE Unit, (:>) :: Progression #-}
 {-# COMPLETE Unit, (:>), (:^) :: Music #-}
 
 pattern Unit :: a -> Duration -> Sequence a
-pattern Unit a d = U a d
+pattern Unit a d = U_ a d
 
-pattern (:>) :: Serial a => Sequence a -> Sequence a -> Sequence a
-pattern (:>) s1 s2 = S s1 s2
+pattern (:>) :: Serial_ a => Sequence a -> Sequence a -> Sequence a
+pattern (:>) s1 s2 = S_ s1 s2
 infixr 6 :>
 
-pattern (:^) :: Parallel a => Sequence a -> Sequence a -> Sequence a
-pattern (:^) s1 s2 = P s1 s2
+pattern (:^) :: Parallel_ a => Sequence a -> Sequence a -> Sequence a
+pattern (:^) s1 s2 = P_ s1 s2
 infixr 5 :^
 
 type Progression = Sequence Analysis
