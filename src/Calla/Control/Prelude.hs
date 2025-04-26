@@ -2,13 +2,13 @@
 
 module Calla.Control.Prelude (
     unchroma, chroma,
-    scale, triad
+    scale, triad, inMode
 ) where
 
 import Calla.Data.Chromatic (
     Diatone    (..), Diatonic  (..),
     Accidental (..), Chromatic (..),
-    Semitone, (%+), (%%+), (%-), diatones)
+    Semitone, (%+), (%%+), (%-), diatones, flat, sharp)
 import Calla.Data.Chordal (
     Key, Mode (..),
     Analysis, pattern Analysis,
@@ -30,19 +30,18 @@ inMode d Min = aeolian !! fromEnum d
     where aeolian :: [Class_]
           aeolian = [0, 2, 3, 5, 7, 8, 10]
 
-scale :: Key -> [(Diatone, Int)]
+scale :: Key -> [Semitone]
 scale k
     | (a, d, m) <- unchroma k
-    = let root       = d `inMode` m %%+ fromEnum a - 1
+    = let root       = d `inMode` m %%+ a
           intervals  = diatones `rotatedBy` fromEnum d
           actuals    = map (actual root m) diatones
-          deviations = map deviation intervals
-          offsets    = zipWith ($) deviations actuals
+          offsets    = zipWith deviation intervals actuals
           in zip intervals offsets
-      where -- Computes the actual pitch class by interval given the pitch class of the root.
+      where -- Computes the actual pitch class of a note, given the root.
             actual :: Class_ -> Mode -> Diatone -> Class_
             actual r m d = r %%+ (d `inMode` m)
-            -- Computes the pitch deviation of c with respect to the "reference" pitch class of d.
+            -- Computes the pitch class deviation of c with respect to the pitch class_ of d.
             deviation :: Diatone -> Class_ -> Int
             deviation d c =
                 let raw = c - (d `inMode` Maj)
@@ -51,7 +50,7 @@ scale k
                           | otherwise = raw
                 in clamp
 
-triad :: Key -> [(Diatone, Int)]
+triad :: Key -> [Semitone]
 triad = take 3 . everyNth 2 . scale
 
 rotatedBy :: [a] -> Int -> [a]

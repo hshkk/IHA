@@ -14,18 +14,19 @@ import Calla.Data.Chordal (
     Key, Mode (..), 
     Analysis, pattern Analysis, 
     Variation (..))
-import Calla.Data.Chromatic (Diatone(..), Accidental (..), diatones)
+import Calla.Data.Chromatic (Diatone(..), Accidental, diatones)
 import Calla.Data.Notal (Note)
 
-instance Pretty Accidental where
-    pretty Flat  = pretty "b"
-    pretty Nat   = emptyDoc
-    pretty Sharp = pretty "#" 
+accidental :: Accidental -> Doc ann
+accidental a
+    | a < 0     = pretty "b" <> accidental (a + 1)
+    | a > 0     = pretty "#" <> accidental (a - 1)
+    | otherwise = emptyDoc
 
 instance Pretty Key where
     pretty k 
         | (a, d, m) <- unchroma k 
-        = pretty a <> mode m (fromJust (lookup d numeral_))
+        = accidental a <> mode m (fromJust (lookup d numeral_))
         where mode Maj = id
               mode Min = pretty . map toLower . show
 
@@ -41,7 +42,7 @@ instance Pretty Variation where
     pretty (Inv i) = brackets (pretty "i" <> pretty i)
 
 instance Pretty Note where
-    pretty n = fromJust (lookup d note_) <> pretty a <> pretty o
+    pretty n = fromJust (lookup d note_) <> accidental a <> pretty o
         where (a, d, o) = unchroma n
 
 data Numeral_ = I | II | III | IV

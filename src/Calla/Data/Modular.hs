@@ -16,7 +16,7 @@ import GHC.TypeLits (Nat, KnownNat, natVal)
 newtype a `Mod` (n :: Nat) = Mod a
 type (%%) = Mod
 
-fromMod :: forall a n. a %% n -> a
+fromMod :: a %% n -> a
 fromMod (Mod a) = a
 
 toMod :: forall a n . (Integral a, KnownNat n) => a -> a %% n

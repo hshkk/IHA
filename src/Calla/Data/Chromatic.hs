@@ -3,9 +3,10 @@
 
 module Calla.Data.Chromatic (
     Diatone     (..),
-    Diatonic    (..), 
     diatones,
-    Accidental  (..),
+    Diatonic    (..), 
+    Accidental,
+    dflat, flat, nat, sharp, dsharp,
     Chromatic   (..),
     Semitone,
     (%+), (%-), (%%+), (%%-)
@@ -16,15 +17,23 @@ import Calla.Data.Modular (type (%%), fromMod, toMod)
 -- | Represents the pitches of a diatonic scale.
 data Diatone = D1 | D2 | D3 | D4 | D5 | D6 | D7
     deriving (Eq, Bounded, Enum, Ord, Show)
--- | Represents musical objects that are diatonic in nature.
-data Diatonic a = D Diatone a deriving (Eq, Ord)
 
 diatones :: [Diatone]
 diatones = enumFromTo D1 D7
 
+-- | Represents musical objects that are diatonic in nature.
+data Diatonic a = D Diatone a deriving (Eq, Ord)
+
 -- | Represents (in combination with 'Diatone') the pitches of a chromatic scale.
-data Accidental = Flat | Nat | Sharp 
-    deriving (Eq, Enum, Ord, Show)
+type Accidental = Int
+
+dflat, flat, nat, sharp, dsharp :: Accidental
+dflat  = -2
+flat   = -1
+nat    = 0
+sharp  = 1
+dsharp = 2
+
 -- | Represents musical objects that are chromatic in nature.
 data Chromatic a = C Accidental (Diatonic a) deriving (Eq, Ord)
 
