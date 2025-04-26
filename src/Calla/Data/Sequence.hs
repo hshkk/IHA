@@ -1,9 +1,9 @@
+{-# LANGUAGE DeriveFunctor #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE PatternSynonyms #-}
 
-module Calla.Data.Temporal (
+module Calla.Data.Sequence (
     Duration,
-    Sequence,
     pattern Unit, pattern (:>), pattern (:^),
     Progression, Music
 ) where
@@ -19,6 +19,7 @@ data Sequence a
     = U_ a Duration
     | S_ (Sequence a) (Sequence a)
     | P_ (Sequence a) (Sequence a)
+    deriving Functor
 
 class Serial_ a
 class Parallel_ a
@@ -36,11 +37,11 @@ pattern Unit a d = U_ a d
 
 pattern (:>) :: Serial_ a => Sequence a -> Sequence a -> Sequence a
 pattern (:>) s1 s2 = S_ s1 s2
-infixr 6 :>
+infixr 5 :>
 
 pattern (:^) :: Parallel_ a => Sequence a -> Sequence a -> Sequence a
 pattern (:^) s1 s2 = P_ s1 s2
-infixr 5 :^
+infixr 6 :^
 
 type Progression = Sequence Analysis
 

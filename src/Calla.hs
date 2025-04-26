@@ -3,8 +3,9 @@ module Calla (
     module Calla.Control.Semantics,
     module Calla.Data.Chromatic,
     module Calla.Data.Chordal,
+    module Calla.Data.Modular,
     module Calla.Data.Notal,
-    module Calla.Data.Temporal,
+    module Calla.Data.Sequence,
     module Calla.Text.Prettyprinter
 ) where
 
@@ -12,6 +13,7 @@ import Calla.Control.Prelude
 import Calla.Control.Semantics
 import Calla.Data.Chromatic
 import Calla.Data.Chordal
+import Calla.Data.Modular
 import Calla.Data.Notal
-import Calla.Data.Temporal
+import Calla.Data.Sequence
 import Calla.Text.Prettyprinter

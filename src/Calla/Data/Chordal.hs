@@ -48,8 +48,6 @@ verify vs = let vs' = sort (nub vs) in
         & assert (length [i | i@(Inv _) <- vs'] <= 1)
         & assert (length [s | s@(Snd _) <- vs'] <= 1)
 
-{-# COMPLETE Analysis #-}
-
 -- | Represents the symbols of Roman numeric analysis as a 3-tuple of:
 --
 -- [Key] The denotation of scale degree and mode.
@@ -58,7 +56,9 @@ verify vs = let vs' = sort (nub vs) in
 -- For example, @viio7@ would be encoded as @(7, L, {Dim, Add 7})@.
 data Analysis = A_ Key [Variation]
 
--- | Constructs a Roman numeric analysis with notational restrictions.
+{-# COMPLETE Analysis #-}
+
+-- | Constructs an analysis with an ordered set of variations.
 pattern Analysis :: Key -> [Variation] -> Analysis
 pattern Analysis k vs  <- A_ k vs
     where Analysis k vs = A_ k (verify vs)
