@@ -14,7 +14,7 @@ import Calla.Data.Chordal (
     Key, Mode (..), 
     Analysis, pattern Analysis, 
     Variation (..))
-import Calla.Data.Chromatic (Diatone(..), Accidental, diatones)
+import Calla.Data.Chromatic (Diatone, diatones, Accidental)
 import Calla.Data.Notal (Note)
 
 accidental :: Accidental -> Doc ann
