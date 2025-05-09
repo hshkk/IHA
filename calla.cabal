@@ -64,7 +64,7 @@ library
         Calla.Control.Semantics
         Calla.Data.Chromatic
         Calla.Data.Chordal
-        Calla.Data.Inference
+        Calla.Data.HGraph
         Calla.Data.Modular
         Calla.Data.Notal
         Calla.Data.Sequence

@@ -26,10 +26,10 @@ inMode d Min = [0, 2, 3, 5, 7, 8, 10] !! fromMod d
 scale :: Key -> [a -> Chromatic a]
 scale (a, d, m)
     = let root        = d `inMode` m + toMod a
-          intervals   = cycle (diatones `rotatedBy` fromMod d)
-          actuals     = cycle (actual root m <$> diatones)
+          intervals   = diatones `rotatedBy` fromMod d
+          actuals     = actual root m <$> diatones
           accidentals = zipWith deviation intervals actuals
-          in zipWith (,,) accidentals intervals
+          in cycle (zipWith (,,) accidentals intervals)
       where -- Computes the actual pitch class of a note, given the root.
             actual :: Semitone -> Mode -> Diatone -> Semitone
             actual r m d = r + d `inMode` m
