@@ -7,7 +7,7 @@ module Calla.Data.Notal (
     Octave, Note
 ) where
 
-import Calla.Data.Chromatic (Chromatic (..))
+import Calla.Data.Chromatic (Chromatic)
 
 type Octave = Int
 type Note   = Chromatic Octave

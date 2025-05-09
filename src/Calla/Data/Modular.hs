@@ -6,7 +6,7 @@
 {-# LANGUAGE TypeSynonymInstances #-}
 
 module Calla.Data.Modular (
-    Mod, type (%%),
+    Mod,
     fromMod, toMod
 ) where
 
@@ -14,25 +14,24 @@ import Data.Data (Proxy(Proxy))
 import GHC.TypeLits (Nat, KnownNat, natVal)
 
 newtype a `Mod` (n :: Nat) = Mod a
-type (%%) = Mod
 
-fromMod :: a %% n -> a
+fromMod :: a `Mod` n -> a
 fromMod (Mod a) = a
 
-toMod :: forall a n . (Integral a, KnownNat n) => a -> a %% n
+toMod :: forall a n . (Integral a, KnownNat n) => a -> a `Mod` n
 toMod a = Mod (a `mod` modulus)
     where modulus = fromInteger (natVal @n Proxy)
 
-instance Show a => Show (a %% n) where
+instance Show a => Show (a `Mod` n) where
     show (Mod a) = show a
 
-instance Eq a => Eq (a %% n) where
+instance Eq a => Eq (a `Mod` n) where
     (==) (Mod a1) (Mod a2) = a1 == a2
 
-instance Ord a => Ord (a %% n) where
+instance Ord a => Ord (a `Mod` n) where
     (<=) (Mod a1) (Mod a2) = a1 <= a2
 
-instance (Integral a, KnownNat n) => Enum (a %% n) where
+instance (Integral a, KnownNat n) => Enum (a `Mod` n) where
     toEnum = fromIntegral
     fromEnum = fromIntegral . fromMod
 
@@ -41,12 +40,12 @@ instance (Integral a, KnownNat n) => Enum (a %% n) where
         where bound | fromEnum b >= fromEnum a = maxBound
                     | otherwise                = minBound
 
-instance (Integral a, KnownNat n) => Bounded (a %% n) where
+instance (Integral a, KnownNat n) => Bounded (a `Mod` n) where
     maxBound = (Mod . pred) modulus
         where modulus = fromInteger (natVal @n Proxy)
     minBound = 0
 
-instance (Integral a, KnownNat n) => Num (a %% n) where
+instance (Integral a, KnownNat n) => Num (a `Mod` n) where
     fromInteger = toMod . fromInteger
     (+) (Mod a1) (Mod a2) = toMod (a1 + a2)
     (*) (Mod a1) (Mod a2) = toMod (a1 + a2)

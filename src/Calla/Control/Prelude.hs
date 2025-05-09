@@ -1,39 +1,26 @@
 module Calla.Control.Prelude (
-    unchroma, chroma,
     inMode, scale, triad
 ) where
 
 import Calla.Data.Chromatic (
     Diatone, diatones,
-    Diatonic (..),
-    Accidental, Chromatic (..),
+    Accidental, Chromatic,
     Semitone)
 import Calla.Data.Chordal (
     Key, Mode (..))
 import Calla.Data.Modular (toMod, fromMod)
 
-unchroma :: Chromatic a -> (Accidental, Diatone, a)
-unchroma (C a (D d x)) = (a, d, x)
-
-chroma :: (Accidental, Diatone, a) -> Chromatic a
-chroma (a, d, x) = C a (D d x)
-
 inMode :: Diatone -> Mode -> Semitone
-inMode d Maj = ionian  !! fromEnum d
-    where ionian :: [Semitone]
-          ionian = [0, 2, 4, 5, 7, 9, 11]
-inMode d Min = aeolian !! fromEnum d
-    where aeolian :: [Semitone]
-          aeolian = [0, 2, 3, 5, 7, 8, 10]
+inMode d Maj = [0, 2, 4, 5, 7, 9, 11] !! fromMod d
+inMode d Min = [0, 2, 3, 5, 7, 8, 10] !! fromMod d
 
 scale :: Key -> [a -> Chromatic a]
-scale k
-    | (a, d, m) <- unchroma k
+scale (a, d, m)
     = let root        = d `inMode` m + toMod a
-          intervals   = diatones `rotatedBy` fromEnum d
+          intervals   = diatones `rotatedBy` fromMod d
           actuals     = actual root m <$> diatones
           accidentals = zipWith deviation intervals actuals
-          in zipWith (\a' d' x -> C a' (D d' x)) accidentals intervals
+          in zipWith (,,) accidentals intervals
       where -- Computes the actual pitch class of a note, given the root.
             actual :: Semitone -> Mode -> Diatone -> Semitone
             actual r m d = r + (d `inMode` m)
@@ -51,7 +38,7 @@ triad = take 3 . everyNth 2 . scale
 
 rotatedBy :: [a] -> Int -> [a]
 rotatedBy [] _ = []
-rotatedBy xs n = zipWith const ((drop n . cycle) xs) xs
+rotatedBy xs n = zipWith const (drop n . cycle $ xs) xs
 
 everyNth :: Int -> [a] -> [a]
 everyNth n = map head . takeWhile (not . null) . iterate (drop n)

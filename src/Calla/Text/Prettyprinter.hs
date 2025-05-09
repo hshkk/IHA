@@ -9,13 +9,18 @@ import Data.Char (toLower)
 import Data.Maybe (fromJust)
 import Prettyprinter
 
-import Calla.Control.Prelude (unchroma)
 import Calla.Data.Chordal (
-    Key, Mode (..), 
-    Analysis, pattern Analysis, 
+    Key, Mode (..),
+    Analysis  (..), pattern Analysis,
     Variation (..))
 import Calla.Data.Chromatic (Diatone, diatones, Accidental)
 import Calla.Data.Notal (Note)
+import Calla.Data.Sequence (
+    Duration,
+    pattern Unit, pattern (:>), pattern (:^), 
+    Progression, Music)
+
+import Data.Ratio (numerator, denominator)
 
 accidental :: Accidental -> Doc ann
 accidental a
@@ -23,15 +28,14 @@ accidental a
     | a > 0     = pretty "#" <> accidental (a - 1)
     | otherwise = emptyDoc
 
-instance Pretty Key where
-    pretty k 
-        | (a, d, m) <- unchroma k 
-        = accidental a <> mode m (fromJust (lookup d numeral_))
+instance {-# OVERLAPS #-} Pretty Key where
+    pretty (a, d, m) = accidental a <> mode m (fromJust (lookup d numeral_))
         where mode Maj = id
               mode Min = pretty . map toLower . show
 
 instance Pretty Analysis where
     pretty (Analysis k vs) = pretty k <> mconcat (map pretty vs)
+    pretty (Shift k a)     = pretty k <+> colon <+> pretty a
 
 instance Pretty Variation where
     pretty Dim = pretty "o"
@@ -41,9 +45,8 @@ instance Pretty Variation where
     pretty (Sub i) = brackets (pretty "no" <> pretty i)
     pretty (Inv i) = brackets (pretty "i" <> pretty i)
 
-instance Pretty Note where
-    pretty n = fromJust (lookup d note_) <> accidental a <> pretty o
-        where (a, d, o) = unchroma n
+instance {-# OVERLAPS #-} Pretty Note where
+    pretty (a, d, o) = fromJust (lookup d note_) <> accidental a <> pretty o
 
 data Numeral_ = I | II | III | IV
               | V | VI | VII deriving (Enum, Show)
@@ -59,3 +62,15 @@ note_ = zip_ (enumFromTo C B)
 
 zip_ :: Show a => [a] -> [(Diatone, Doc ann)]
 zip_ xs = zip diatones (map (pretty . show) xs)
+
+instance Pretty Duration where
+    pretty d = (pretty . numerator) d <> pretty "/" <> (pretty . denominator) d
+
+instance Pretty Progression where
+    pretty (Unit x d) = pretty x <+> pretty d
+    pretty (x1 :> x2) = pretty x1 <+> pretty ">" <+> pretty x2
+
+instance Pretty Music where
+    pretty (Unit x d) = pretty x <+> pretty d
+    pretty (x1 :> x2) = pretty x1 <+> pretty ">" <+> pretty x2
+    pretty (x1 :^ x2) = pretty x1 <+> pretty "^" <+> pretty x2

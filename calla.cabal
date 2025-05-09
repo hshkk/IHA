@@ -80,6 +80,7 @@ library
     build-depends:    
         base ^>=4.17.2.1,
         extra,
+        fgl,
         prettyprinter
 
     -- Directories containing source files.

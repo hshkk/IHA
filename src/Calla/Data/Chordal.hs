@@ -4,7 +4,7 @@
 module Calla.Data.Chordal (
     Mode (..), Key,
     Variation (..),
-    Analysis, pattern Analysis
+    Analysis, pattern Analysis, pattern Shift
 ) where
 
 import Control.Exception (assert)
@@ -12,6 +12,7 @@ import Data.Function (on, (&))
 import Data.List (nub, sort)
 
 import Calla.Data.Chromatic
+import Data.Text.Prettyprint.Doc (Pretty(pretty))
 
 data Mode = Maj | Min deriving (Eq, Ord)
 type Key  = Chromatic Mode
@@ -54,9 +55,9 @@ verify vs = let vs' = sort (nub vs) in
 -- [Modifications] Diminutions, augmentations, added/omitted tones, inversions, and secondary chords.
 --
 -- For example, @viio7@ would be encoded as @(7, L, {Dim, Add 7})@.
-data Analysis = A_ Key [Variation]
+data Analysis = A_ Key [Variation] | Shift Key Analysis
 
-{-# COMPLETE Analysis #-}
+{-# COMPLETE Analysis, Shift #-}
 
 -- | Constructs an analysis with an ordered set of variations.
 pattern Analysis :: Key -> [Variation] -> Analysis
