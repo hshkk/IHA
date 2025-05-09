@@ -12,7 +12,6 @@ import Data.Function (on, (&))
 import Data.List (nub, sort)
 
 import Calla.Data.Chromatic
-import Data.Text.Prettyprint.Doc (Pretty(pretty))
 
 data Mode = Maj | Min deriving (Eq, Ord)
 type Key  = Chromatic Mode

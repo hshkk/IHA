@@ -67,10 +67,10 @@ instance Pretty Duration where
     pretty d = (pretty . numerator) d <> pretty "/" <> (pretty . denominator) d
 
 instance Pretty Progression where
-    pretty (Unit x d) = pretty x <+> pretty d
-    pretty (x1 :> x2) = pretty x1 <+> pretty ">" <+> pretty x2
+    pretty (Unit a d) = pretty a <+> pretty d
+    pretty (p1 :> p2) = pretty p1 <+> pretty ">" <+> pretty p2
 
 instance Pretty Music where
-    pretty (Unit x d) = pretty x <+> pretty d
-    pretty (x1 :> x2) = pretty x1 <+> pretty ">" <+> pretty x2
-    pretty (x1 :^ x2) = pretty x1 <+> pretty "^" <+> pretty x2
+    pretty (Unit n d) = pretty n <+> pretty d
+    pretty (m1 :> m2) = pretty m1 <+> pretty ">" <+> pretty m2
+    pretty (m1 :^ m2) = pretty m1 <+> pretty "^" <+> pretty m2
