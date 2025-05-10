@@ -5,6 +5,7 @@ module Calla.Data.Chromatic (
     Diatone,
     i, ii, iii, iv, v, vi, vii,
     diatones,
+    Diatonic,
     Accidental,
     dflat, flat, nat, sharp, dsharp,
     Chromatic,
@@ -28,6 +29,9 @@ vii = 6
 diatones :: [Diatone]
 diatones = [i..vii]
 
+-- | Represents musical objects that are diatonic in nature.
+type Diatonic a = (Diatone, a)
+
 -- | Represents (in combination with 'Diatone') the pitches of a chromatic scale.
 type Accidental = Int
 
@@ -39,6 +43,6 @@ sharp  = 1
 dsharp = 2
 
 -- | Represents musical objects that are chromatic in nature.
-type Chromatic a = (Accidental, Diatone, a)
+type Chromatic a = (Diatonic a, Accidental)
 
 type Semitone = Int `Mod` 12

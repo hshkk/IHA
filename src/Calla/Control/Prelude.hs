@@ -17,19 +17,19 @@ inMode d Min = [0, 2, 3, 5, 7, 8, 10] !! fromMod d
 -- | Computes an infinite list of functions [a -> Chromatic a] representing an infinite relative scale.
 -- 
 -- Relative to C major: [C4, ..., B4, ...] :: [Note]
--- >>> zipWith ($) (scale (0, 0, Maj)) (repeat 4 :: [Octave])
--- [(0,0,4), (0,1,4), (0,2,4), (0,3,4), (0,4,4), (0,5,4), (0,6,4), ...]
+-- >>> zipWith ($) (scale ((0, Maj), 0)) (repeat 4 :: [Octave])
+-- [((0, 4), 0), ((1, 4), 0), ((2, 4), 0), ((3, 4), 0), ((4, 4), 0), ((5, 4), 0), ((6, 4), 0), ...]
 -- 
 -- Relative to C major: [Eb, Fm, G, Abm, Bb, Cm, D, ...] :: [Key]
 -- >>> zipWith ($) (scale (-1, 2, Maj)) (cycle [Maj, Min] :: [Mode])
--- [(-1,2,Maj), (0,3,Min), (0,4,Maj), (-1,5,Min), (-1,6,Maj), (0,0,Min), (0,1,Maj), ...]
+-- [((2, Maj), -1), ((3, Min), 0), ((4, Maj), 0), ((5, Min), -1), ((6, Maj), -1), ((0, Min), 0), ((1, Maj), 0), ...]
 scale :: Key -> [a -> Chromatic a]
-scale (a, d, m)
+scale ((d, m), a)
     = let root        = d `inMode` m + toMod a
           intervals   = diatones `rotatedBy` fromMod d
           actuals     = actual root m <$> diatones
           accidentals = zipWith deviation intervals actuals
-          in cycle (zipWith (,,) accidentals intervals)
+          in cycle (zipWith (\i a x -> ((i, x), a)) intervals accidentals)
       where -- Computes the actual pitch class of a note, given the root.
             actual :: Semitone -> Mode -> Diatone -> Semitone
             actual r m d = r + d `inMode` m
