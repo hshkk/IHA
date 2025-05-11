@@ -1,7 +1,7 @@
 {-# LANGUAGE PatternSynonyms #-}
 
 module Suihei.Control.Demarcation (
-    demarcate, partition
+    demarcate
 ) where
 
 import Suihei.Data.Sequence (
@@ -33,10 +33,15 @@ type Demarcation a = [a]
 --  (4) [Intensification] The more pronounced the effects of (2) and (3) are, the more likely a demarcation boundary is.
 --  (5) [Symmetry] Demarcations that approach the ideal subdivision of two parts of equal length are preferred over asymmetric ones.
 demarcate :: Music -> Demarcation Music
-demarcate = foldM (\n d -> [Unit n d])
-                  (++) -- TODO: Unify or construct a demarcation by concatenation by (1), (2), (3), (4), and (5).
-                       -- (++) is equivalent to the most eager demarcation algorithm: every serial composition is rewritten as a demarcation.
-                  (unmarcate (:^) (:>))
+demarcate = foldM (\n d -> [Unit n d]) 
+                  (/+/)
+                  (unmarcate (:^) (:>)) . partition
+    where -- Unmarcates or constructs a demarcation by concatenation.
+          -- (++) is equivalent to the most eager demarcation algorithm: every serial composition is rewritten as a demarcation.
+          -- @unmarcate@ is equivalent to the most hesitant demarcation algorithm: every serial composition remains intact.
+          (/+/) :: Demarcation Music -> Demarcation Music -> Demarcation Music
+          d1 /+/ d2 = [] -- TODO: Implement!
+          infix 9 /+/
 
 -- | "Unmarcates" (i.e. merges) two demarcations by folding over their constituents, yielding a singular demarcation.
 unmarcate :: (a -> a -> a) -> (a -> a -> a) -> Demarcation a -> Demarcation a -> Demarcation a
@@ -55,7 +60,9 @@ unify f g d1 d2 = foldr1 g d1 `f` foldr1 g d2
 -- >>> (C4 1/4 > G4 1/4) ^ (C5 1/6 > E5 1/6 > G5 1/6)
 -- C4 1/6 ^ C5 1/6 > C4 1/12 ^ E5 1/12 > G4 1/12 ^ E5 1/12 > G4 1/6 ^ G5 1/6
 partition :: Music -> Music
-partition = foldM Unit (\m1 m2 -> partition m1 :> partition m2) (//)
+partition = foldM Unit 
+                  (\m1 m2 -> partition m1 :> partition m2) 
+                  (//)
     where -- Partitions serial compositions nested in parallel compositions via segmentation of the latter.
           -- If two serial compositions occur simultaneously, all four arguments are recursively processed.
           (//) :: Music -> Music -> Music
@@ -67,13 +74,11 @@ partition = foldM Unit (\m1 m2 -> partition m1 :> partition m2) (//)
               | otherwise        = let d = min (duration m1) (duration m2) in 
                                        d `takenFrom` m1 :^ d `takenFrom` m2
           infix 9 //
-          -- Segments two simulataneous serial compositions, effectively rewriting all simultaneous serial compositions.
+          -- Segments two simultaneous serial compositions, effectively rewriting all simultaneous serial compositions.
           segment :: Music -> Music -> Music -> Music -> Music
           segment m1a m1b m2a m2b
-              | d1 > d2    = (d2 `takenFrom` m1a) // m2a :> (d2 `droppedFrom` m1a) // m2b 
-                             :> m1b // m2b
-              | d1 < d2    = m1a // (d1 `takenFrom` m2a) :> m1b // (d1 `droppedFrom` m2a) 
-                             :> m1b // m2b
+              | d1 > d2    = (d2 `takenFrom` m1a) // m2a :> (d2 `droppedFrom` m1a) // m2b :> m1b // m2b
+              | d1 < d2    = m1a // (d1 `takenFrom` m2a) :> m1b // (d1 `droppedFrom` m2a) :> m1b // m2b
               | otherwise  = m1a // m2a :> m1b // m2b
                   where d1 = duration m1a
                         d2 = duration m2a

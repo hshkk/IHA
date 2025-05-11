@@ -37,6 +37,8 @@ scale ((d, m), a)
             deviation :: Diatone -> Semitone -> Accidental
             deviation d s =
                 let raw = fromMod s - fromMod (d `inMode` Maj)
+                    -- Clamping the raw deviation prevents long accidental chains with simpler equivalents.
+                    -- e.g., with respect to pitch class, 11 sharps is equivalent to 1 flat.
                     clamp | raw > 6   = raw - 12
                           | raw < -6  = raw + 12
                           | otherwise = raw
