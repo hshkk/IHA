@@ -3,19 +3,19 @@
 
 {-# OPTIONS_GHC -Wno-orphans #-}
 
-module Calla.Text.Prettyprinter (Pretty) where
+module Suihei.Text.Prettyprinter (Pretty) where
 
 import Data.Char (toLower)
 import Data.Maybe (fromJust)
 import Prettyprinter
 
-import Calla.Data.Chordal (
+import Suihei.Data.Chordal (
     Key, Mode (..),
     Analysis  (..), pattern Analysis,
     Variation (..))
-import Calla.Data.Chromatic (Diatone, diatones, Accidental)
-import Calla.Data.Notal (Note, pattern Rest)
-import Calla.Data.Sequence (
+import Suihei.Data.Chromatic (Diatone, diatones, Accidental)
+import Suihei.Data.Notal (Note, pattern Rest)
+import Suihei.Data.Sequence (
     Duration,
     pattern Unit, pattern (:>), pattern (:^), 
     Progression, Music)

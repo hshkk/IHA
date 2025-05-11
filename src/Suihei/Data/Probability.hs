@@ -1,4 +1,4 @@
-module Calla.Data.Probability (
+module Suihei.Data.Probability (
     Probability
 ) where
 

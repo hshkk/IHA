@@ -5,7 +5,7 @@
 {-# LANGUAGE TypeOperators #-}
 {-# LANGUAGE TypeSynonymInstances #-}
 
-module Calla.Data.Modular (
+module Suihei.Data.Modular (
     Mod,
     fromMod, toMod
 ) where

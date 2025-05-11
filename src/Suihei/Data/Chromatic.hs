@@ -1,7 +1,7 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE TypeOperators #-}
 
-module Calla.Data.Chromatic (
+module Suihei.Data.Chromatic (
     Diatone,
     i, ii, iii, iv, v, vi, vii,
     diatones,
@@ -12,7 +12,7 @@ module Calla.Data.Chromatic (
     Semitone
 ) where
 
-import Calla.Data.Modular (Mod)
+import Suihei.Data.Modular (Mod)
 
 -- | Represents the pitches of a diatonic scale.
 type Diatone = Int `Mod` 7

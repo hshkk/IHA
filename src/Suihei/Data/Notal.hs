@@ -1,12 +1,12 @@
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE PatternSynonyms #-}
 
-module Calla.Data.Notal (
+module Suihei.Data.Notal (
     Octave, 
     Note, pattern Rest
 ) where
 
-import Calla.Data.Chromatic (Chromatic)
+import Suihei.Data.Chromatic (Chromatic)
 
 type Octave = Int
 -- | Notes are considered in absolute terms. 

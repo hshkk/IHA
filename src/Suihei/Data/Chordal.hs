@@ -1,7 +1,7 @@
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE PatternSynonyms #-}
 
-module Calla.Data.Chordal (
+module Suihei.Data.Chordal (
     Mode (..), Key,
     Variation (..),
     Analysis, pattern Analysis, pattern Shift
@@ -11,7 +11,7 @@ import Control.Exception (assert)
 import Data.Function (on, (&))
 import Data.List (nub, sort)
 
-import Calla.Data.Chromatic
+import Suihei.Data.Chromatic
 
 data Mode = Maj | Min deriving (Eq, Ord)
 -- | Keys are considered in relative terms. 

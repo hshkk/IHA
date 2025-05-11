@@ -1,14 +1,14 @@
-module Calla.Control.Prelude (
+module Suihei.Control.Prelude (
     inMode, scale, triad
 ) where
 
-import Calla.Data.Chromatic (
+import Suihei.Data.Chromatic (
     Diatone, diatones,
     Accidental, Chromatic,
     Semitone)
-import Calla.Data.Chordal (
+import Suihei.Data.Chordal (
     Key, Mode (..))
-import Calla.Data.Modular (toMod, fromMod)
+import Suihei.Data.Modular (toMod, fromMod)
 
 inMode :: Diatone -> Mode -> Semitone
 inMode d Maj = [0, 2, 4, 5, 7, 9, 11] !! fromMod d

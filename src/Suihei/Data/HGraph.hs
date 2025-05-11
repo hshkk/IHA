@@ -1,10 +1,10 @@
-module Calla.Data.HGraph (
+module Suihei.Data.HGraph (
     Probability, HGraph,
     dijkstra
 ) where
 
-import Calla.Data.Chordal (Analysis)
-import Calla.Data.Probability (Probability)
+import Suihei.Data.Chordal (Analysis)
+import Suihei.Data.Probability (Probability)
 
 import Data.Graph.Inductive.Graph (Graph, Node, Path)
 import Data.Graph.Inductive.Query.SP (sp)
