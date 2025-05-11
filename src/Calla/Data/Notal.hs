@@ -1,9 +1,6 @@
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE PatternSynonyms #-}
 
-{-# OPTIONS_GHC -Wno-incomplete-patterns #-}
-{-# OPTIONS_GHC -Wno-orphans #-}
-
 module Calla.Data.Notal (
     Octave, 
     Note, pattern Rest

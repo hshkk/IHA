@@ -32,5 +32,13 @@ type Demarcation a = [a]
 --  (5) [Symmetry] Demarcations that approach the ideal subdivision of two parts of equal length are preferred over asymmetric ones.
 demarcate :: Music -> Demarcation Music
 demarcate = foldM (\n d -> [Unit n d])
-                  const
-                  const
+                  (++) -- TODO: Unify or construct a demarcation by concatenation by (1), (2), (3), (4), and (5).
+                       -- (++) is equivalent to the most eager demarcation algorithm: every serial composition is rewritten as a demarcation.
+                  (unify (:^) (:>))
+
+-- | Unifies two demarcations by folding over their constituents, yielding a singleton demarcation.
+-- The third and fourth arguments, @d1@ and @d2@, are each folded with the second argument @g@, then applied together to the first argument @f@.
+unify :: (a -> a -> a) -> (a -> a -> a) -> Demarcation a -> Demarcation a -> Demarcation a
+unify _ _ [] _  = []
+unify _ _ _ []  = []
+unify f g d1 d2 = [foldr1 g d1 `f` foldr1 g d2] 

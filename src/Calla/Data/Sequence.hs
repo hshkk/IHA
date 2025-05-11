@@ -29,7 +29,7 @@ foldS f g h (S_ x1 x2) = foldS f g h x1 `g` foldS f g h x2
 foldS f g h (P_ x1 x2) = foldS f g h x1 `h` foldS f g h x2
 
 duration :: Sequence a -> Duration
-duration = foldS (\ _ d -> d) (+) max
+duration = foldS (const id) (+) max
 
 class Serial_ a
 class Parallel_ a

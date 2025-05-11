@@ -78,7 +78,9 @@ instance Pretty Music where
     pretty (Unit Rest d) = pretty "*" <+> pretty d
     pretty (Unit n d) = pretty n <+> pretty d
     pretty (m1 :> m2) = pretty m1 <+> pretty ">" <+> pretty m2
-    pretty (m1 :^ m2) = pretty m1 <+> pretty "^" <+> pretty m2
+    pretty (m1 :^ m2)
+        | (_ :> _) <- m2 = pretty m1 <+> pretty "^" <+> (parens . pretty) m2
+        | otherwise = pretty m1 <+> pretty "^" <+> pretty m2
 
 -- Show instance generation could probably be done automatically with Template Haskell, but it isn't too necessary here.
 
