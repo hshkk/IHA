@@ -4,6 +4,7 @@
 
 module Calla.Data.Sequence (
     Duration,
+    duration,
     pattern Unit, pattern (:>), pattern (:^),
     Progression, foldP,
     Music,       foldM
@@ -27,6 +28,9 @@ foldS f _ _ (U_ x d)   = f x d
 foldS f g h (S_ x1 x2) = foldS f g h x1 `g` foldS f g h x2
 foldS f g h (P_ x1 x2) = foldS f g h x1 `h` foldS f g h x2
 
+duration :: Sequence a -> Duration
+duration = foldS (\ _ d -> d) (+) max
+
 class Serial_ a
 class Parallel_ a
 
@@ -34,6 +38,9 @@ instance Serial_ Analysis
 
 instance Serial_ Note
 instance Parallel_ Note
+
+instance Serial_ (Maybe Note)
+instance Parallel_ (Maybe Note)
 
 pattern Unit :: a -> Duration -> Sequence a
 pattern Unit a d = U_ a d
@@ -51,9 +58,9 @@ type Progression = Sequence Analysis
 foldP :: (Analysis -> Duration -> a) -> (a -> a -> a) -> Progression -> a
 foldP f g = foldS f g undefined
 
-type Music = Sequence Note
+type Music = Sequence (Maybe Note)
 
-foldM :: (Note -> Duration -> a) -> (a -> a -> a) -> (a -> a -> a) -> Music -> a
+foldM :: (Maybe Note -> Duration -> a) -> (a -> a -> a) -> (a -> a -> a) -> Music -> a
 foldM = foldS
 
 {-# COMPLETE Unit, (:>) :: Progression #-}

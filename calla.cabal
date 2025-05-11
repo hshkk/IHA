@@ -60,6 +60,7 @@ library
     -- Modules exported by the library.
     exposed-modules: 
         Calla
+        Calla.Control.Demarcation
         Calla.Control.Prelude
         Calla.Control.Semantics
         Calla.Data.Chromatic
@@ -67,6 +68,7 @@ library
         Calla.Data.HGraph
         Calla.Data.Modular
         Calla.Data.Notal
+        Calla.Data.Probability
         Calla.Data.Sequence
         Calla.Text.Prettyprinter
 

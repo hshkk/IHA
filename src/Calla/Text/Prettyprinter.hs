@@ -14,7 +14,7 @@ import Calla.Data.Chordal (
     Analysis  (..), pattern Analysis,
     Variation (..))
 import Calla.Data.Chromatic (Diatone, diatones, Accidental)
-import Calla.Data.Notal (Note)
+import Calla.Data.Notal (Note, pattern Rest)
 import Calla.Data.Sequence (
     Duration,
     pattern Unit, pattern (:>), pattern (:^), 
@@ -27,6 +27,10 @@ accidental a
     | a < 0     = pretty "b" <> accidental (a + 1)
     | a > 0     = pretty "#" <> accidental (a - 1)
     | otherwise = emptyDoc
+
+instance Pretty Mode where
+    pretty Maj = pretty "Maj"
+    pretty Min = pretty "Min"
 
 instance {-# OVERLAPS #-} Pretty Key where
     pretty ((d, m), a) = accidental a <> mode m (fromJust (lookup d numeral_))
@@ -71,6 +75,33 @@ instance Pretty Progression where
     pretty (p1 :> p2) = pretty p1 <+> pretty ">" <+> pretty p2
 
 instance Pretty Music where
+    pretty (Unit Rest d) = pretty "*" <+> pretty d
     pretty (Unit n d) = pretty n <+> pretty d
     pretty (m1 :> m2) = pretty m1 <+> pretty ">" <+> pretty m2
     pretty (m1 :^ m2) = pretty m1 <+> pretty "^" <+> pretty m2
+
+-- Show instance generation could probably be done automatically with Template Haskell, but it isn't too necessary here.
+
+instance Show Mode where
+    show = show . pretty
+
+instance {-# OVERLAPS #-} Show Key where
+    show = show . pretty
+
+instance Show Analysis where
+    show = show . pretty
+
+instance Show Variation where
+    show = show . pretty
+
+instance {-# OVERLAPS #-} Show Note where
+    show = show . pretty
+
+instance {-# OVERLAPS #-} Show Duration where
+    show = show . pretty
+
+instance Show Progression where
+    show = show . pretty
+
+instance Show Music where
+    show = show . pretty
