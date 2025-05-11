@@ -3,17 +3,17 @@
 {-# LANGUAGE PatternSynonyms #-}
 
 module Suihei.Data.Sequence (
-    Duration,
-    Temporal (..), Take (..),
+    Duration, duration,
+    Take (..),
     pattern Unit, pattern (:>), pattern (:^),
     Progression, foldP,
     Music,       foldM
 ) where
 
-import Data.Ratio (Ratio)
-
 import Suihei.Data.Chordal (Analysis)
 import Suihei.Data.Notal (Note)
+
+import Data.Ratio (Ratio)
 
 type Duration = Ratio Int
 
@@ -28,24 +28,30 @@ foldS f _ _ (U_ x d)   = f x d
 foldS f g h (S_ x1 x2) = foldS f g h x1 `g` foldS f g h x2
 foldS f g h (P_ x1 x2) = foldS f g h x1 `h` foldS f g h x2
 
-class Temporal a where
-    duration :: a -> Duration
-    none :: Duration -> a
-
-instance {-# OVERLAPPING #-} Temporal (Sequence (Maybe a)) where
-    duration = foldS (const id) (+) max 
-    none = U_ Nothing
-
-instance {-# OVERLAPPABLE #-} Temporal (Sequence a) where
-    duration = foldS (const id) (+) max
-    none = undefined
+duration :: Sequence a -> Duration
+duration = foldS (const id) (+) max
 
 class Take a where
     takenFrom   :: Duration -> a -> a
     droppedFrom :: Duration -> a -> a
 
-instance Take (Sequence a) where
-    takenFrom d _ | d <= 0 = none 0
+instance {-# OVERLAPPING #-} Take (Sequence (Maybe a)) where
+    takenFrom d _ | d <= 0 = U_ Nothing 0
+    takenFrom d1 (U_ x d2) = U_ x (min d1 d2)
+    takenFrom d (S_ s1 s2) = let d1 = duration s1 in
+        if d <= d1 then d `takenFrom` s1
+                   else S_ s1 ((d - d1) `takenFrom` s2)
+    takenFrom d (P_ s1 s2) = P_ (d `takenFrom` s1) (d `takenFrom` s2)
+
+    droppedFrom d s | d <= 0 = s
+    droppedFrom d1 (U_ x d2) = U_ x (max 0 (d2 - d1))
+    droppedFrom d (S_ s1 s2) = let d1 = duration s1 in
+        if d <= d1 then S_ (d `droppedFrom` s1) s2
+                   else (d - d1) `droppedFrom` s2
+    droppedFrom d (P_ s1 s2) = P_ (d `droppedFrom` s1) (d `droppedFrom` s2)
+
+instance {-# OVERLAPPABLE #-} Take (Sequence a) where
+    takenFrom d _ | d <= 0 = undefined
     takenFrom d1 (U_ x d2) = U_ x (min d1 d2)
     takenFrom d (S_ s1 s2) = let d1 = duration s1 in
         if d <= d1 then d `takenFrom` s1

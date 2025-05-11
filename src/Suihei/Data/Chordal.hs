@@ -7,11 +7,11 @@ module Suihei.Data.Chordal (
     Analysis, pattern Analysis, pattern Shift
 ) where
 
+import Suihei.Data.Chromatic (Chromatic)
+
 import Control.Exception (assert)
 import Data.Function (on, (&))
 import Data.List (nub, sort)
-
-import Suihei.Data.Chromatic
 
 data Mode = Maj | Min deriving (Eq, Ord)
 -- | Keys are considered in relative terms. 
