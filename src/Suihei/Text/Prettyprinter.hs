@@ -80,11 +80,11 @@ instance Pretty Progression where
 instance Pretty Music where
     pretty (Unit n)
         | (Rest, d) <- n = pretty "*" <+> pretty d
-        | otherwise         = pretty n
+        | otherwise      = pretty n
     pretty (m1 :> m2) = pretty m1 <+> pretty ">" <+> pretty m2
     pretty (m1 :^ m2)
         | (_ :> _) <- m2 = pretty m1 <+> pretty "^" <+> (parens . pretty) m2
-        | otherwise = pretty m1 <+> pretty "^" <+> pretty m2
+        | otherwise      = pretty m1 <+> pretty "^" <+> pretty m2
 
 -- Show instance generation could probably be done automatically with Template Haskell, but it isn't too necessary here.
 

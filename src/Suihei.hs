@@ -1,7 +1,7 @@
 module Suihei (
     module Suihei.Control.Demarcation,
+    module Suihei.Control.Interpreter,
     module Suihei.Control.Prelude,
-    module Suihei.Control.Semantics,
     module Suihei.Data.Chromatic,
     module Suihei.Data.Chordal,
     module Suihei.Data.Composition,
@@ -12,8 +12,8 @@ module Suihei (
 ) where
 
 import Suihei.Control.Demarcation
+import Suihei.Control.Interpreter
 import Suihei.Control.Prelude
-import Suihei.Control.Semantics
 import Suihei.Data.Chromatic
 import Suihei.Data.Chordal
 import Suihei.Data.Composition

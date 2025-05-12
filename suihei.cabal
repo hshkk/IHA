@@ -61,8 +61,9 @@ library
     exposed-modules: 
         Suihei
         Suihei.Control.Demarcation
+        Suihei.Control.Interpreter
         Suihei.Control.Prelude
-        Suihei.Control.Semantics
+        Suihei.Data.Abstract
         Suihei.Data.Chromatic
         Suihei.Data.Chordal
         Suihei.Data.Composition

@@ -5,8 +5,8 @@ module Suihei.Control.Demarcation (
 ) where
 
 import Suihei.Data.Composition (
-    duration, 
-    Take (takenFrom, droppedFrom),
+    Total (duration), 
+    Take  (takenFrom, droppedFrom),
     pattern Unit, pattern (:>), pattern (:^),
     Music, foldM)
 

@@ -3,8 +3,7 @@
 {-# LANGUAGE PatternSynonyms #-}
 
 module Suihei.Data.Composition (
-    Total (..),
-    Take  (..),
+    Total (..), Take  (..),
     pattern Unit, pattern (:>), pattern (:^),
     Progression, foldP,
     Music,       foldM
@@ -48,17 +47,17 @@ class Take a where
 instance (Take a, Total a) => Take (Composition a) where
     takenFrom d _ | d <= 0 = empty 0
     takenFrom d (U_ x) = U_ (d `takenFrom` x)
-    takenFrom d (S_ s1 s2) = let d1 = duration s1 in
-        if d <= d1 then d `takenFrom` s1
-                   else S_ s1 ((d - d1) `takenFrom` s2)
-    takenFrom d (P_ s1 s2) = P_ (d `takenFrom` s1) (d `takenFrom` s2)
+    takenFrom d (S_ x1 x2) = let d1 = duration x1 in
+        if d <= d1 then d `takenFrom` x1
+                   else S_ x1 ((d - d1) `takenFrom` x2)
+    takenFrom d (P_ x1 x2) = P_ (d `takenFrom` x1) (d `takenFrom` x2)
 
     droppedFrom d s | d <= 0 = s
     droppedFrom d (U_ x) = U_ (d `takenFrom` x)
-    droppedFrom d (S_ s1 s2) = let d1 = duration s1 in
-        if d <= d1 then S_ (d `droppedFrom` s1) s2
-                   else (d - d1) `droppedFrom` s2
-    droppedFrom d (P_ s1 s2) = P_ (d `droppedFrom` s1) (d `droppedFrom` s2)
+    droppedFrom d (S_ x1 x2) = let d1 = duration x1 in
+        if d <= d1 then S_ (d `droppedFrom` x1) x2
+                   else (d - d1) `droppedFrom` x2
+    droppedFrom d (P_ x1 x2) = P_ (d `droppedFrom` x1) (d `droppedFrom` x2)
 
 instance Take TNote where
     takenFrom   d1 (n, d2) = (n, min d1 d2)
@@ -85,11 +84,11 @@ pattern Unit :: a -> Composition a
 pattern Unit a = U_ a
 
 pattern (:>) :: Serial_ a => Composition a -> Composition a -> Composition a
-pattern (:>) s1 s2 = S_ s1 s2
+pattern (:>) x1 x2 = S_ x1 x2
 infixl 5 :>
 
 pattern (:^) :: Parallel_ a => Composition a -> Composition a -> Composition a
-pattern (:^) s1 s2 = P_ s1 s2
+pattern (:^) x1 x2 = P_ x1 x2
 infixl 6 :^
 
 type Progression = Composition TAnalysis
