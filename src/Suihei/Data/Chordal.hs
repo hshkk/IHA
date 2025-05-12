@@ -4,10 +4,12 @@
 module Suihei.Data.Chordal (
     Mode (..), Key,
     Variation (..),
-    Analysis, pattern Analysis, pattern Shift
+    Analysis, pattern Analysis, pattern Shift,
+    TAnalysis
 ) where
 
 import Suihei.Data.Chromatic (Chromatic)
+import Suihei.Data.Temporal (Temporal)
 
 import Control.Exception (assert)
 import Data.Function (on, (&))
@@ -64,3 +66,5 @@ data Analysis = A_ Key [Variation] | Shift Key Analysis
 pattern Analysis :: Key -> [Variation] -> Analysis
 pattern Analysis k vs  <- A_ k vs
     where Analysis k vs = A_ k (verify vs)
+
+type TAnalysis = Temporal Analysis

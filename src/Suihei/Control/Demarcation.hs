@@ -1,10 +1,10 @@
 {-# LANGUAGE PatternSynonyms #-}
 
 module Suihei.Control.Demarcation (
-    demarcate
+    demarcate, partition
 ) where
 
-import Suihei.Data.Sequence (
+import Suihei.Data.Composition (
     duration, 
     Take (takenFrom, droppedFrom),
     pattern Unit, pattern (:>), pattern (:^),
@@ -33,7 +33,7 @@ type Demarcation a = [a]
 --  (4) [Intensification] The more pronounced the effects of (2) and (3) are, the more likely a demarcation boundary is.
 --  (5) [Symmetry] Demarcations that approach the ideal subdivision of two parts of equal length are preferred over asymmetric ones.
 demarcate :: Music -> Demarcation Music
-demarcate = foldM (\n d -> [Unit n d]) 
+demarcate = foldM (\n -> [Unit n]) 
                   (/+/)
                   (unmarcate (:^) (:>)) . partition
     where -- Unmarcates or constructs a demarcation by concatenation.

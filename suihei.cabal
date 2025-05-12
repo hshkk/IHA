@@ -65,11 +65,12 @@ library
         Suihei.Control.Semantics
         Suihei.Data.Chromatic
         Suihei.Data.Chordal
+        Suihei.Data.Composition
         Suihei.Data.HGraph
         Suihei.Data.Modular
         Suihei.Data.Notal
         Suihei.Data.Probability
-        Suihei.Data.Sequence
+        Suihei.Data.Temporal
         Suihei.Text.Prettyprinter
 
     -- Modules included in this library but not exported.

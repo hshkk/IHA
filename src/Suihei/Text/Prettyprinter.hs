@@ -9,16 +9,16 @@ import Data.Char (toLower)
 import Data.Maybe (fromJust)
 import Prettyprinter
 
+import Suihei.Data.Chromatic (Diatone, diatones, Accidental)
+import Suihei.Data.Composition (
+    pattern Unit, pattern (:>), pattern (:^),
+    Progression, Music)
 import Suihei.Data.Chordal (
     Key, Mode (..),
     Analysis  (..), pattern Analysis,
-    Variation (..))
-import Suihei.Data.Chromatic (Diatone, diatones, Accidental)
-import Suihei.Data.Notal (Note, pattern Rest)
-import Suihei.Data.Sequence (
-    Duration,
-    pattern Unit, pattern (:>), pattern (:^), 
-    Progression, Music)
+    Variation (..), TAnalysis)
+import Suihei.Data.Notal (Note, pattern Rest, TNote)
+import Suihei.Data.Temporal (Duration, Temporal)
 
 import Data.Ratio (numerator, denominator)
 
@@ -70,13 +70,17 @@ zip_ xs = zip diatones (map (pretty . show) xs)
 instance Pretty Duration where
     pretty d = (pretty . numerator) d <> pretty "/" <> (pretty . denominator) d
 
+instance {-# OVERLAPS #-} Pretty a => Pretty (Temporal a) where
+    pretty (x, d) = pretty x <+> pretty d
+
 instance Pretty Progression where
-    pretty (Unit a d) = pretty a <+> pretty d
+    pretty (Unit a) = pretty a
     pretty (p1 :> p2) = pretty p1 <+> pretty ">" <+> pretty p2
 
 instance Pretty Music where
-    pretty (Unit Rest d) = pretty "*" <+> pretty d
-    pretty (Unit n d) = pretty n <+> pretty d
+    pretty (Unit n)
+        | (Rest, d) <- n = pretty "*" <+> pretty d
+        | otherwise         = pretty n
     pretty (m1 :> m2) = pretty m1 <+> pretty ">" <+> pretty m2
     pretty (m1 :^ m2)
         | (_ :> _) <- m2 = pretty m1 <+> pretty "^" <+> (parens . pretty) m2
@@ -100,6 +104,12 @@ instance {-# OVERLAPS #-} Show Note where
     show = show . pretty
 
 instance {-# OVERLAPS #-} Show Duration where
+    show = show . pretty
+
+instance {-# OVERLAPS #-} Show TAnalysis where
+    show = show . pretty
+
+instance {-# OVERLAPS #-} Show TNote where
     show = show . pretty
 
 instance Show Progression where
