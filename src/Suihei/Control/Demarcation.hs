@@ -6,12 +6,13 @@ module Suihei.Control.Demarcation (
 
 import Suihei.Control.Prelude (pitchClasses)
 import Suihei.Data.Composition (
-    fore, aft, count,
     pattern Unit, pattern (:>), pattern (:^),
     Music, foldM,
     Total (duration),
-    Take  (takenFrom, droppedFrom))
+    Take  (takenFrom, droppedFrom),
+    fore, aft)
 import Suihei.Data.Probability (Probability)
+import Suihei.Data.Temporal (Duration)
 
 import Data.List.Extra (uncons, unsnoc)
 
@@ -38,15 +39,13 @@ terminal d = aft . snd <$> unsnoc d
 --
 --  (1) [Size] The smaller a demarcation, the less preferable it is.
 --  (2) [Change] For a sequence of notes n1 > n2 > n3 > n4, n2 > n3 could be a demarcation boundary if:
---      * n2 > n3 involves a greater intervallic distance than both n1 > n2 and n3 > n4, or if
---      * n2 > n3 have multiple constituents, but have very few or no pitch classes in common.
---      * n2 and n3 are of different length and both n1, n2 and n3, n4 do not differ in length.
---  (3) [Intensification] The more pronounced the effects of (2) and (3) are, the more likely a demarcation boundary is.
+--      * n3 has more constituents than n2, and have very few or no pitch classes in common.
+--  (3) [Intensification] The more pronounced the effects of (2) are, the more likely a demarcation boundary is.
 --  (4) [Symmetry] Demarcations that approach the ideal subdivision of two parts of equal length are preferred over asymmetric ones.
 demarcate :: Music -> Demarcation Music
 demarcate = foldM (\n -> [Unit n])
                   (/+/)
-                  (unmarcate (:^) (:>)) . partition
+                  (unmarcate (:^)) . partition
     where -- Unmarcates or constructs a demarcation by concatenation.
           -- (++) is equivalent to the most eager demarcation algorithm: every serial composition is rewritten as a demarcation.
           -- @unmarcate@ is equivalent to the most hesitant demarcation algorithm: every serial composition remains intact.
@@ -56,14 +55,17 @@ demarcate = foldM (\n -> [Unit n])
               | Just m1 <- terminal d1
               , Just m2 <- initial d2 =
                   let m1p = pitchClasses m1
-                      m2p = pitchClasses m2 in []
+                      m2p = pitchClasses m2 
+                      p1 = symm d1 d2 in if p1 > 0.5 then d1 ++ d2 else unmarcate (:>) d1 d2
               | otherwise = []
           infix 9 /+/
 
--- | "Unmarcates" (i.e. merges) two demarcations by folding over their constituents, yielding a singular demarcation.
--- The third and fourth arguments, @d1@ and @d2@, are each folded with the second argument @g@, then applied together to the first argument @f@.
-unmarcate :: (a -> a -> a) -> (a -> a -> a) -> Demarcation a -> Demarcation a -> Demarcation a
-unmarcate f g d1 d2 = [foldr1 g d1 `f` foldr1 g d2]
+-- | "Unmarcates" (i.e. merges) two demarcations by composing their last and first elements with a given function.
+unmarcate :: (a -> a -> a) -> Demarcation a -> Demarcation a -> Demarcation a
+unmarcate f d1 d2
+    | Just (m1s, m1) <- unsnoc d1
+    , Just (m2, m2s) <- uncons d2 = concat [m1s, [m1 `f` m2], m2s]
+    | otherwise = d1 ++ d2
 
 -- | Partitions serial compositions nested within parallel compositions to avoid demarcations over sustained notes.
 --
@@ -114,7 +116,9 @@ partition = foldM Unit
                   where d1 = duration m1a
                         d2 = duration m2a
 
-size :: Demarcation Music -> Demarcation Music -> Probability
-size d1 d2 = 0
-    where l1 = count <$> terminal d1
-          l2 = count <$> initial d2
+symm :: Demarcation Music -> Demarcation Music -> Probability
+symm d1 d2 = 1 - realToFrac (abs (ds1 - ds2) / max ds1 ds2)
+    where durationOver :: Demarcation Music -> Duration
+          durationOver = foldr ((+) . duration) 0
+          ds1 = durationOver d1
+          ds2 = durationOver d2

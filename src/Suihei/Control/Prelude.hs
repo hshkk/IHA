@@ -21,9 +21,9 @@ pitchClass :: Note -> Semitone
 pitchClass ((d, _), a) = d `inMode` Maj + toMod a
 
 -- | Retrieves the pitch classes of the constituent notes of a single parallel composition while preserving octaviation.
--- @pitchClasses@ is undefined for serial compositions.
+-- @pitchClasses@ is undefined for serial compositions, including those nested within parallel compositions.
 pitchClasses :: Music -> [(Maybe Semitone, Maybe Octave)]
-pitchClasses = foldM (\n -> [(pitchClass <$> fst n, snd . fst <$> fst n)]) undefined (++)
+pitchClasses = foldM (\(n, _) -> [(pitchClass <$> n, snd . fst <$> n)]) undefined (++)
 
 -- (((d, o), a), d')
 

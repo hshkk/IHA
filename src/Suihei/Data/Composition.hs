@@ -2,11 +2,11 @@
 {-# LANGUAGE PatternSynonyms #-}
 
 module Suihei.Data.Composition (
-    fore, aft, count,
     pattern Unit, pattern (:>), pattern (:^),
     Progression, foldP,
     Music,       foldM,
     Total (..), Take  (..),
+    fore, aft, count,
 ) where
 
 import Suihei.Data.Chordal (Analysis, TAnalysis)
@@ -17,28 +17,6 @@ data Composition a
     = U_ a
     | S_ (Composition a) (Composition a)
     | P_ (Composition a) (Composition a)
-
--- | Retrieves the first element of a composition with respect to the outermost serial composition.
-fore :: Composition a -> Composition a
-fore u@(U_ _)   = u
-fore (S_ x _)   = fore x
-fore p@(P_ x1 x2)
-    | S_ _ _ <- x1
-    , S_ _ _ <- x2 = p
-    | S_ _ _ <- x1 = P_ x1 (fore x2)
-    | S_ _ _ <- x2 = P_ (fore x1) x2
-    | otherwise    = P_ (fore x1) (fore x2)
-
--- | Retrieves the last element of a composition with respect to the outermost serial composition.
-aft :: Composition a -> Composition a
-aft = fore . rev
-    where rev :: Composition a -> Composition a
-          rev = foldC U_ (flip S_) P_
-
--- | Counts the number of elements in a composition with respect to the outermost serial compositions.
-count :: Composition a -> Int
-count (S_ x1 x2) = count x1 + count x2
-count _          = 1
 
 instance Functor Composition where
     fmap f (U_ x) = U_ (f x)
@@ -129,3 +107,25 @@ instance Take TNote where
 instance Take TAnalysis where
     takenFrom   d1 (n, d2) = (n, min d1 d2)
     droppedFrom d1 (n, d2) = (n, max 0 (d2 - d1))
+
+-- | Retrieves the first element of a composition with respect to the outermost serial composition.
+fore :: Composition a -> Composition a
+fore u@(U_ _)   = u
+fore (S_ x _)   = fore x
+fore p@(P_ x1 x2)
+    | S_ _ _ <- x1
+    , S_ _ _ <- x2 = p
+    | S_ _ _ <- x1 = P_ x1 (fore x2)
+    | S_ _ _ <- x2 = P_ (fore x1) x2
+    | otherwise    = P_ (fore x1) (fore x2)
+
+-- | Retrieves the last element of a composition with respect to the outermost serial composition.
+aft :: Composition a -> Composition a
+aft = fore . rev
+    where rev :: Composition a -> Composition a
+          rev = foldC U_ (flip S_) P_
+
+-- | Counts the number of elements in a composition with respect to the outermost serial compositions.
+count :: Composition a -> Int
+count (S_ x1 x2) = count x1 + count x2
+count _          = 1
