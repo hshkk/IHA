@@ -1,23 +1,47 @@
 {-# LANGUAGE LambdaCase #-}
 
 module Suihei.Control.Prelude (
+    enharmonic,
+    notes,
+    occurrences,
     pitchClass, pitchClasses,
     inMode, 
     scale,
-    interval,
-    secundal, tertian, quartal,
+    interval, secundal, tertian, quartal,
     triad, tetrad
 ) where
 
 import Suihei.Data.Chromatic (
     Diatone, diatones,
-    Accidental, Chromatic,
+    Accidental, 
+    Chromatic, Enharmonic,
     Semitone)
 import Suihei.Data.Modular (toMod, fromMod)
 import Suihei.Data.Chordal (
     Key, Mode (..))
 import Suihei.Data.Notal (Note, Octave)
 import Suihei.Data.Composition (Music, foldM)
+
+enharmonic :: Chromatic a -> Enharmonic
+enharmonic ((d, _), a) = (d, a)
+
+-- | Retrieves the constituent notes of a single parallel composition while preserving octaviation.
+-- @notes@ is undefined for serial compositions, including those nested within parallel compositions.
+notes :: Music -> [Note]
+notes = foldM (\case { (Nothing, _) -> []; 
+                       (Just n, _)  -> [n] })
+              undefined
+              (++)
+
+occurrences :: Music -> [(Enharmonic, Int)]
+occurrences = merge . foldM (ins . fst) (++) (++)
+    where ins :: Maybe Note -> [(Enharmonic, Int)]
+          ins Nothing            = []
+          ins (Just ((d, _), a)) = [((d, a), 1)]
+          merge :: (Eq a, Num b) => [(a, b)] -> [(a, b)]
+          merge = foldr (\(a, b) xs -> case lookup a xs of
+                                           Just o  -> (a, o + b) : filter ((/= a) . fst) xs
+                                           Nothing -> (a, b) : xs) []
 
 pitchClass :: Note -> Semitone
 pitchClass ((d, _), a) = d `inMode` Maj + toMod a
