@@ -10,14 +10,14 @@ import Data.Maybe (fromJust)
 import Prettyprinter
 
 import Suihei.Data.Chromatic (Diatone, diatones, Accidental)
-import Suihei.Data.Composition (
-    pattern Unit, pattern (:>), pattern (:^),
-    Progression, Music)
 import Suihei.Data.Chordal (
     Key, Mode (..),
     Analysis  (..), pattern Analysis,
     Variation (..), TAnalysis)
 import Suihei.Data.Notal (Note, pattern Rest, TNote)
+import Suihei.Data.Composition (
+    pattern Unit, pattern (:>), pattern (:^),
+    Progression, Music)
 import Suihei.Data.Temporal (Duration, Temporal)
 
 import Data.Ratio (numerator, denominator)

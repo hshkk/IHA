@@ -1,12 +1,12 @@
-{-# LANGUAGE DeriveFunctor #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE PatternSynonyms #-}
 
 module Suihei.Data.Composition (
-    Total (..), Take  (..),
+    fore, aft, count,
     pattern Unit, pattern (:>), pattern (:^),
     Progression, foldP,
-    Music,       foldM
+    Music,       foldM,
+    Total (..), Take  (..),
 ) where
 
 import Suihei.Data.Chordal (Analysis, TAnalysis)
@@ -17,12 +17,75 @@ data Composition a
     = U_ a
     | S_ (Composition a) (Composition a)
     | P_ (Composition a) (Composition a)
-    deriving Functor
+
+-- | Retrieves the first element of a composition with respect to the outermost serial composition.
+fore :: Composition a -> Composition a
+fore u@(U_ _)   = u
+fore (S_ x _)   = fore x
+fore p@(P_ x1 x2)
+    | S_ _ _ <- x1
+    , S_ _ _ <- x2 = p
+    | S_ _ _ <- x1 = P_ x1 (fore x2)
+    | S_ _ _ <- x2 = P_ (fore x1) x2
+    | otherwise    = P_ (fore x1) (fore x2)
+
+-- | Retrieves the last element of a composition with respect to the outermost serial composition.
+aft :: Composition a -> Composition a
+aft = fore . rev
+    where rev :: Composition a -> Composition a
+          rev = foldC U_ (flip S_) P_
+
+-- | Counts the number of elements in a composition with respect to the outermost serial compositions.
+count :: Composition a -> Int
+count (S_ x1 x2) = count x1 + count x2
+count _          = 1
+
+instance Functor Composition where
+    fmap f (U_ x) = U_ (f x)
+    fmap f (S_ x1 x2) = S_ (fmap f x1) (fmap f x2)
+    fmap f (P_ x1 x2) = P_ (fmap f x1) (fmap f x2)
 
 foldC :: (a -> b) -> (b -> b -> b) -> (b -> b -> b) -> Composition a -> b
 foldC f _ _ (U_ x)     = f x
 foldC f g h (S_ x1 x2) = foldC f g h x1 `g` foldC f g h x2
 foldC f g h (P_ x1 x2) = foldC f g h x1 `h` foldC f g h x2
+
+class Serial_ a
+class Parallel_ a
+
+instance Serial_ Analysis
+
+instance Serial_ TAnalysis
+
+instance Serial_ Note
+instance Parallel_ Note
+
+instance Serial_ TNote
+instance Parallel_ TNote
+
+pattern Unit :: a -> Composition a
+pattern Unit a = U_ a
+
+pattern (:>) :: Serial_ a => Composition a -> Composition a -> Composition a
+pattern (:>) x1 x2 = S_ x1 x2
+infixl 5 :>
+
+pattern (:^) :: Parallel_ a => Composition a -> Composition a -> Composition a
+pattern (:^) x1 x2 = P_ x1 x2
+infixl 6 :^
+
+type Progression = Composition TAnalysis
+
+foldP :: (TAnalysis -> a) -> (a -> a -> a) -> Progression -> a
+foldP f g = foldC f g undefined
+
+type Music = Composition TNote
+
+foldM :: (TNote -> a) -> (a -> a -> a) -> (a -> a -> a) -> Music -> a
+foldM = foldC
+
+{-# COMPLETE Unit, (:>) :: Progression #-}
+{-# COMPLETE Unit, (:>), (:^) :: Music #-}
 
 class Total a where
     duration :: a -> Duration
@@ -66,40 +129,3 @@ instance Take TNote where
 instance Take TAnalysis where
     takenFrom   d1 (n, d2) = (n, min d1 d2)
     droppedFrom d1 (n, d2) = (n, max 0 (d2 - d1))
-
-class Serial_ a
-class Parallel_ a
-
-instance Serial_ Analysis
-
-instance Serial_ TAnalysis
-
-instance Serial_ Note
-instance Parallel_ Note
-
-instance Serial_ TNote
-instance Parallel_ TNote
-
-pattern Unit :: a -> Composition a
-pattern Unit a = U_ a
-
-pattern (:>) :: Serial_ a => Composition a -> Composition a -> Composition a
-pattern (:>) x1 x2 = S_ x1 x2
-infixl 5 :>
-
-pattern (:^) :: Parallel_ a => Composition a -> Composition a -> Composition a
-pattern (:^) x1 x2 = P_ x1 x2
-infixl 6 :^
-
-type Progression = Composition TAnalysis
-
-foldP :: (TAnalysis -> a) -> (a -> a -> a) -> Progression -> a
-foldP f g = foldC f g undefined
-
-type Music = Composition TNote
-
-foldM :: (TNote -> a) -> (a -> a -> a) -> (a -> a -> a) -> Music -> a
-foldM = foldC
-
-{-# COMPLETE Unit, (:>) :: Progression #-}
-{-# COMPLETE Unit, (:>), (:^) :: Music #-}

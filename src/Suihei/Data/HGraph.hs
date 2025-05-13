@@ -1,5 +1,5 @@
 module Suihei.Data.HGraph (
-    Probability, HGraph,
+    HGraph,
     dijkstra
 ) where
 

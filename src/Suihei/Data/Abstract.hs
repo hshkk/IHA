@@ -14,8 +14,10 @@ type Bind = (Var, Val)
 
 data Exp = Val Val
          | Var Var
-         | Exp :>? Exp
-         | Exp :^? Exp
+         | Exp :>. Exp
+         | Exp :^. Exp
+         | Exp :>| Exp
+         | Exp :|< Exp
          | Infer Exp
 
 data Val = Progression Progression
