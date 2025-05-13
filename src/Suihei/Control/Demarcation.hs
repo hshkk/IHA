@@ -5,15 +5,18 @@ module Suihei.Control.Demarcation (
 ) where
 
 import Suihei.Control.Prelude (pitchClasses)
+import Suihei.Data.Chromatic (Semitone)
+import Suihei.Data.Notal (Octave)
 import Suihei.Data.Composition (
     pattern Unit, pattern (:>), pattern (:^),
     Music, foldM,
     Total (duration),
     Take  (takenFrom, droppedFrom),
     fore, aft)
-import Suihei.Data.Probability (Probability)
 import Suihei.Data.Temporal (Duration)
+import Suihei.Data.Probability (Probability)
 
+import Data.List (intersect, union)
 import Data.List.Extra (uncons, unsnoc)
 
 type Demarcation a = [a]
@@ -38,10 +41,10 @@ terminal d = aft . snd <$> unsnoc d
 -- Finally, demarcations obey the following preference rules.
 --
 --  (1) [Size] The smaller a demarcation, the less preferable it is.
---  (2) [Change] For a sequence of notes n1 > n2 > n3 > n4, n2 > n3 could be a demarcation boundary if:
---      * n3 has more constituents than n2, and have very few or no pitch classes in common.
---  (3) [Intensification] The more pronounced the effects of (2) are, the more likely a demarcation boundary is.
---  (4) [Symmetry] Demarcations that approach the ideal subdivision of two parts of equal length are preferred over asymmetric ones.
+--  (2) [Movement] For a sequence of notes n1 > n2 > n3 > n4, n2 > n3 could be a demarcation boundary if n2 and n3 have very few or no pitch classes in common.
+--  (3) [Density] For a sequence of notes n1 > n2 > n3 > n4, n2 > n3 could be a demarcation boundary if n3 has more constituents than n2.
+--  (4) [Intensification] The more pronounced the effects of (2) are, the more likely a demarcation boundary is.
+--  (5) [Symmetry] Demarcations that approach the ideal subdivision of two parts of equal length are preferred over asymmetric ones.
 demarcate :: Music -> Demarcation Music
 demarcate = foldM (\n -> [Unit n])
                   (/+/)
@@ -56,7 +59,12 @@ demarcate = foldM (\n -> [Unit n])
               , Just m2 <- initial d2 =
                   let m1p = pitchClasses m1
                       m2p = pitchClasses m2 
-                      p1 = symm d1 d2 in if p1 > 0.5 then d1 ++ d2 else unmarcate (:>) d1 d2
+                      p1  = symm d1  d2 
+                      p2  = mvt  m1p m2p 
+                      p3  = dens m1p m2p in 
+                  if (p1 + p2 + p3) / 3 > 0.1
+                  then d1 ++ d2 
+                  else unmarcate (:>) d1 d2
               | otherwise = []
           infix 9 /+/
 
@@ -122,3 +130,14 @@ symm d1 d2 = 1 - realToFrac (abs (ds1 - ds2) / max ds1 ds2)
           durationOver = foldr ((+) . duration) 0
           ds1 = durationOver d1
           ds2 = durationOver d2
+
+-- | The degree of pitch class movement is determined by a Jaccard indexing over lists of pitch classes.
+mvt :: [(Semitone, Octave)] -> [(Semitone, Octave)] -> Probability
+mvt m1p m2p = fromIntegral (length (m1ps `intersect` m2ps)) / fromIntegral (length (m1ps `union` m2ps))
+    where m1ps = map fst m1p
+          m2ps = map fst m2p
+
+dens :: [(Semitone, Octave)] -> [(Semitone, Octave)] -> Probability
+dens m1p m2p = fromIntegral (abs (m1ps - m2ps)) / fromIntegral (max m1ps m2ps)
+    where m1ps = length m1p
+          m2ps = length m2p

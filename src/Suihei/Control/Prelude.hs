@@ -1,3 +1,5 @@
+{-# LANGUAGE LambdaCase #-}
+
 module Suihei.Control.Prelude (
     pitchClass, pitchClasses,
     inMode, 
@@ -22,8 +24,11 @@ pitchClass ((d, _), a) = d `inMode` Maj + toMod a
 
 -- | Retrieves the pitch classes of the constituent notes of a single parallel composition while preserving octaviation.
 -- @pitchClasses@ is undefined for serial compositions, including those nested within parallel compositions.
-pitchClasses :: Music -> [(Maybe Semitone, Maybe Octave)]
-pitchClasses = foldM (\(n, _) -> [(pitchClass <$> n, snd . fst <$> n)]) undefined (++)
+pitchClasses :: Music -> [(Semitone, Octave)]
+pitchClasses = foldM (\case { (Nothing, _) -> []; 
+                              (Just n,  _) -> [(pitchClass n, (snd . fst) n)] }) 
+                     undefined 
+                     (++)
 
 -- (((d, o), a), d')
 
