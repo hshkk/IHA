@@ -58,7 +58,9 @@ suiheiDef = emptyDef
                 , nestedComments  = True
                 , identStart      = letter
                 , identLetter     = alphaNum <|> oneOf "_'"
-                , reservedOpNames = [">", "^", ">|", "|<", "|"]
-                , reservedNames   = ["infer", "out", "outf", "midi"]
+                , reservedOpNames = [">", "^", ">|", "|<"]
+                , reservedNames   = [ "infer"
+                                    , "out", "in"
+                                    , "midi" ]
                 , caseSensitive   = True
                 }

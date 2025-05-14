@@ -29,6 +29,11 @@ data Expression = Value Value
                 | Expression :|< Expression
                 | Infer Expression
 
+infixl 5 :>.
+infixl 6 :^.
+infixl 5 :>|
+infixl 5 :|<
+
 data Value = Progression Progression
            | Music Music
 

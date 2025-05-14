@@ -53,19 +53,14 @@ instance Pretty Variation where
     pretty (Inv i) = pretty "i" <> pretty i
 
 instance {-# OVERLAPS #-} Pretty Note where
-    pretty ((d, a), o) = fromJust (lookup d note_) <> accidental a <> pretty o
+    pretty ((d, a), o) = (pretty . show) (fromEnum d + 1) <> accidental a <> delimit (pretty o)
+        where delimit doc = pretty "|" <> doc <> pretty "|"
 
 data Numeral_ = I | II | III | IV
               | V | VI | VII deriving (Enum, Show)
 
 numeral_ :: [(Diatone, Doc ann)]
 numeral_ = zip_ (enumFromTo I VII)
-
-data Note_ = C | D | E | F
-           | G | A | B deriving (Enum, Show)
-
-note_ :: [(Diatone, Doc ann)]
-note_ = zip_ (enumFromTo C B)
 
 zip_ :: Show a => [a] -> [(Diatone, Doc ann)]
 zip_ xs = zip diatones (map (pretty . show) xs)

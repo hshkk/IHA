@@ -31,41 +31,44 @@ import Data.Maybe (fromJust)
 import Data.Ratio ((%))
 
 parseExpression :: Parser Expression
-parseExpression = buildExpressionParser operatorTable (choice [parseTerm])
+parseExpression = buildExpressionParser operatorTable parseTerm
 
 operatorTable :: OperatorTable String () Identity Expression
-operatorTable = [[ifxl (parseOperator ">|" (:>|))
-                , ifxl (parseOperator "|<" (:|<))
-                , ifxl (parseOperator ">"  (:>.))
-                , ifxl (parseOperator "^"  (:^.))]]
-    where ifxl x = Infix x AssocLeft
-          ifxr x = Infix x AssocRight
+operatorTable = [ [ifxl (parseOperator "^" (:^.))]
+                , [ ifxl (parseOperator ">|" (:>|))
+                  , ifxl (parseOperator "|<" (:|<))
+                  , ifxl (parseOperator ">" (:>.)) ] ]
+    where ifxl op = Infix op AssocLeft
+          ifxr op = Infix op AssocRight
 
 parseOperator :: String -> (Expression -> Expression -> Expression) -> Parser (Expression -> Expression -> Expression)
 parseOperator s op = op <$ reservedOp s
 
 parseTerm :: Parser Expression
-parseTerm = choice [parseInfer, parseValue]
+parseTerm = try parseInfer <|> parseValue <|> parens parseExpression
 
 parseInfer :: Parser Expression
 parseInfer = do
     reserved "infer"
-    e <- choice [parens parseExpression, parseTerm]
+    e <- choice [parens parseExpression, parens parseLiteral, parseVariable]
     return (Infer e)
 
 parseValue :: Parser Expression
 parseValue = try parseLiteral <|> parseVariable
 
 parseLiteral :: Parser Expression
-parseLiteral = try parseNote <|> parseAnalysis
+parseLiteral = try parseAbsoluteNote 
+           <|> try parseRelativeNote 
+           <|> try parseRest
+           <|> parseAnalysis
 
 parseAccidentals :: ParsecT String () Identity Int
 parseAccidentals = choice [ length <$> many1 (symbol "#")
                           , negate . length <$> many1 (symbol "b")
                           , pure 0]
 
-parseNote :: Parser Expression
-parseNote = do
+parseAbsoluteNote :: Parser Expression
+parseAbsoluteNote = do
     m <- oneOf notes
     a <- parseAccidentals
     o <- nat
@@ -74,6 +77,23 @@ parseNote = do
     let note = ((toMod dia, a), o)
     (return . Value . Music . Unit) (Just note, d)
     where notes = "CDEFGAB"
+
+parseRelativeNote :: Parser Expression
+parseRelativeNote = do
+    m <- oneOf notes
+    a <- parseAccidentals
+    o <- between (symbol "|") (symbol "|") nat
+    d <- parseDuration
+    let dia = fromJust (m `elemIndex` notes)
+    let note = ((toMod dia, a), o)
+    (return . Value . Music . Unit) (Just note, d)
+    where notes = "1234567"
+
+parseRest :: Parser Expression
+parseRest = do
+    _ <- symbol "*"
+    d <- parseDuration
+    (return . Value . Music . Unit) (Nothing, d)
 
 parseKey :: Parser Key
 parseKey = do
@@ -113,16 +133,17 @@ parseVariations = do
                                   , string' "no" >> int >>= \n -> return (Sub n) ]
 
 parseDuration :: Parser Duration
-parseDuration = try parseDurationLiteral <|> parseDurationVariable
+parseDuration = parseDurationLiteral <|> parseDurationVariable
     where parseDurationVariable = choice [ symbol "w" >> return (1 % 1)
                                          , symbol "h" >> return (1 % 2)
                                          , symbol "q" >> return (1 % 4)
                                          , symbol "e" >> return (1 % 8)
                                          , symbol "s" >> return (1 % 16)
                                          , symbol "t" >> return (1 % 32)]
-          parseDurationLiteral = int >>= \num -> char '/' 
-                                     >>  int 
-                                     >>= \den -> return (num % den)
+          parseDurationLiteral = int >>= \num -> 
+                                 char '/' >>
+                                 int >>= \den -> 
+                                 return (num % den)
 
 parseVariable :: Parser Expression
 parseVariable = Variable <$> ident
@@ -130,28 +151,30 @@ parseVariable = Variable <$> ident
 parseOut :: Parser Statement
 parseOut = do
     reserved "out"
-    e <- choice [parens parseExpression, parseTerm]
+    e <- choice [parens parseExpression, parens parseLiteral, parseVariable]
     return (Eff (Out e))
 
 parseOutf :: Parser Statement
 parseOutf = do
-    reserved "outf"
+    reserved "out"
+    e   <- choice [parens parseExpression, parens parseLiteral, parseVariable]
+    reserved "in"
     key <- choice [parens parseKey, parseKey] <* spaces
-    e   <- choice [parens parseExpression, parseTerm]
     return (Eff (Outf key e))
 
 parseMidi :: Parser Statement
 parseMidi = do
     reserved "midi"
-    e <- choice [parens parseExpression, parseTerm]
+    e <- choice [parens parseExpression, parens parseLiteral, parseVariable]
     return (Eff (Midi e))
 
 parseStatement :: Parser Statement
 parseStatement = (try parseEffect <|> parseDefinition) <* eof
-    where parseDefinition = ident >>= \x -> reservedOp "=" 
-                                  >>  parseExpression
-                                  >>= \e -> return (Def x e)
-          parseEffect = choice [parseOut, parseOutf, parseMidi]
+    where parseDefinition = ident >>= \x -> 
+                            reservedOp "=" >> 
+                            parseExpression >>= \e -> 
+                            return (Def x e)
+          parseEffect = choice [try parseOutf, parseOut, parseMidi]
 
 parseLn :: String -> Either String Statement
 parseLn ln = case parse parseStatement ln ln of
