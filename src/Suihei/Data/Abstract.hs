@@ -8,6 +8,7 @@ module Suihei.Data.Abstract (
     Effect     (..)
 ) where
 
+import Suihei.Data.Chordal (Key)
 import Suihei.Data.Composition (Progression, Music)
 
 type Program = [Statement]
@@ -32,4 +33,5 @@ data Value = Progression Progression
            | Music Music
 
 data Effect = Out  Expression
+            | Outf Key Expression
             | Midi Expression

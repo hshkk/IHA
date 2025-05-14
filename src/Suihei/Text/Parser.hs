@@ -88,8 +88,8 @@ parseKey = do
 parseAnalysis :: Parser Expression
 parseAnalysis = do
     key <- parseKey
-    ss  <- parseVariationSugar
-    vs  <- option [] parseVariations
+    ss  <- parseVariationSugar       <* spaces
+    vs  <- option [] parseVariations <* spaces
     d   <- parseDuration
     let analysis = Analysis key (ss ++ vs)
     (return . Value . Progression . Unit) (analysis, d)
@@ -113,24 +113,45 @@ parseVariations = do
                                   , string' "no" >> int >>= \n -> return (Sub n) ]
 
 parseDuration :: Parser Duration
-parseDuration = parseDurationLiteral <|> parseDurationVariable
+parseDuration = try parseDurationLiteral <|> parseDurationVariable
     where parseDurationVariable = choice [ symbol "w" >> return (1 % 1)
                                          , symbol "h" >> return (1 % 2)
                                          , symbol "q" >> return (1 % 4)
                                          , symbol "e" >> return (1 % 8)
                                          , symbol "s" >> return (1 % 16)
                                          , symbol "t" >> return (1 % 32)]
-          parseDurationLiteral = int >>= \num -> char '/' >> int >>= \den -> return (num % den)
+          parseDurationLiteral = int >>= \num -> char '/' 
+                                     >>  int 
+                                     >>= \den -> return (num % den)
 
 parseVariable :: Parser Expression
 parseVariable = Variable <$> ident
 
+parseOut :: Parser Statement
+parseOut = do
+    reserved "out"
+    e <- choice [parens parseExpression, parseTerm]
+    return (Eff (Out e))
+
+parseOutf :: Parser Statement
+parseOutf = do
+    reserved "outf"
+    key <- choice [parens parseKey, parseKey] <* spaces
+    e   <- choice [parens parseExpression, parseTerm]
+    return (Eff (Outf key e))
+
+parseMidi :: Parser Statement
+parseMidi = do
+    reserved "midi"
+    e <- choice [parens parseExpression, parseTerm]
+    return (Eff (Midi e))
+
 parseStatement :: Parser Statement
-parseStatement = do
-    x <- ident
-    reservedOp "="
-    e <- parseExpression <* eof
-    return (Def x e)
+parseStatement = (try parseEffect <|> parseDefinition) <* eof
+    where parseDefinition = ident >>= \x -> reservedOp "=" 
+                                  >>  parseExpression
+                                  >>= \e -> return (Def x e)
+          parseEffect = choice [parseOut, parseOutf, parseMidi]
 
 parseLn :: String -> Either String Statement
 parseLn ln = case parse parseStatement ln ln of

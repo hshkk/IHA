@@ -38,16 +38,19 @@ instance {-# OVERLAPS #-} Pretty Key where
               mode Min = pretty . map toLower . show
 
 instance Pretty Analysis where
-    pretty (Analysis k vs) = pretty k <> mconcat (map pretty vs)
+    pretty (Analysis k vs) = pretty k <> delimit (map pretty vs)
+        where delimit docs
+                  | null docs = emptyDoc
+                  | otherwise = pretty "|" <> (hsep . punctuate comma) docs <> pretty "|"
     pretty (Shift k a)     = pretty k <+> colon <+> pretty a
 
 instance Pretty Variation where
     pretty Dim = pretty "o"
     pretty Aug = pretty "+"
     pretty (Snd k) = pretty "/" <> pretty k
-    pretty (Add i) = brackets (pretty "a"<> pretty i)
-    pretty (Sub i) = brackets (pretty "no" <> pretty i)
-    pretty (Inv i) = brackets (pretty "i" <> pretty i)
+    pretty (Add i) = pretty "a"<> pretty i
+    pretty (Sub i) = pretty "no" <> pretty i
+    pretty (Inv i) = pretty "i" <> pretty i
 
 instance {-# OVERLAPS #-} Pretty Note where
     pretty ((d, a), o) = fromJust (lookup d note_) <> accidental a <> pretty o
