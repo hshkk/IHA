@@ -1,16 +1,20 @@
 module Suihei.Text.Lexer (
     lexer,
-    lexeme, ident, symbol, number,
+    lexeme, ident, symbol, int, nat,
     parens,
     reserved, reservedOp
 ) where
 
+import GHC.Natural (Natural)
+
 import Text.Parsec (alphaNum, letter, oneOf, (<|>))
 import Text.Parsec.String (Parser)
 import Text.Parsec.Token
-    (GenLanguageDef (caseSensitive, commentStart, commentEnd,
-                     commentLine, nestedComments, identStart, identLetter, opStart,
-                     opLetter, reservedOpNames, reservedNames),
+    (GenLanguageDef (caseSensitive, 
+                     commentStart, commentEnd,
+                     commentLine, nestedComments, 
+                     identStart, identLetter, 
+                     reservedOpNames, reservedNames),
      LanguageDef, TokenParser, makeTokenParser)
 import Text.ParserCombinators.Parsec.Language (emptyDef)
 
@@ -28,8 +32,11 @@ ident = Token.identifier lexer
 symbol :: String -> Parser String
 symbol = Token.symbol lexer
 
-number :: Parser Integer
-number = Token.integer lexer
+int :: Parser Int
+int = (fromIntegral :: Integer -> Int) <$> Token.integer lexer
+
+nat :: Parser Natural
+nat = (fromIntegral :: Integer -> Natural) <$> Token.integer lexer
 
 parens :: Parser a -> Parser a
 parens = Token.parens lexer

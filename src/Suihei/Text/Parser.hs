@@ -13,20 +13,22 @@ import Suihei.Data.Abstract (
     Variable,
     Effect     (..))
 import Suihei.Data.Modular (toMod)
+import Suihei.Data.Chordal (Mode (..), pattern Analysis, Variation(..), Key)
 import Suihei.Data.Composition (pattern Unit)
 import Suihei.Data.Temporal (Duration)
 import Suihei.Text.Lexer
 
+import Text.Parsec (string', ParsecT)
 import Text.Parsec.Expr (
     OperatorTable, Operator (Infix), Assoc (AssocLeft, AssocRight),
     buildExpressionParser)
 import Text.ParserCombinators.Parsec
 
+import Data.Char (toLower)
 import Data.Functor.Identity (Identity)
-import Data.Maybe (fromJust)
 import Data.List (elemIndex)
+import Data.Maybe (fromJust)
 import Data.Ratio ((%))
-import GHC.Natural (Natural)
 
 parseExpression :: Parser Expression
 parseExpression = buildExpressionParser operatorTable (choice [parseTerm])
@@ -55,28 +57,70 @@ parseValue :: Parser Expression
 parseValue = try parseLiteral <|> parseVariable
 
 parseLiteral :: Parser Expression
-parseLiteral = choice [parseNote]
+parseLiteral = try parseNote <|> parseAnalysis
+
+parseAccidentals :: ParsecT String () Identity Int
+parseAccidentals = choice [ length <$> many1 (symbol "#")
+                          , negate . length <$> many1 (symbol "b")
+                          , pure 0]
 
 parseNote :: Parser Expression
 parseNote = do
     m <- oneOf notes
     a <- parseAccidentals
-    o <- (fromIntegral :: Integer -> Natural) <$> number
+    o <- nat
     d <- parseDuration
     let dia  = fromJust (m `elemIndex` notes)
     let note = ((toMod dia, a), o)
     (return . Value . Music . Unit) (Just note, d)
     where notes = "CDEFGAB"
-          parseAccidentals = length <$> many1 (symbol "#")
-                         <|> negate . length <$> many1 (symbol "b")
-                         <|> pure 0
+
+parseKey :: Parser Key
+parseKey = do
+    a <- parseAccidentals
+    m  <- choice (map string' analyses)
+    let dia = fromJust (map toLower m `elemIndex` reverse (take 7 analyses))
+    let key = ((toMod dia, a), if map toLower m /= m then Maj else Min)
+    return key
+    where analyses = [ "vii", "vi", "v", "iv", "iii", "ii", "i"
+                     , "VII", "VI", "V", "IV", "III", "II", "I" ]
+
+parseAnalysis :: Parser Expression
+parseAnalysis = do
+    key <- parseKey
+    ss  <- parseVariationSugar
+    vs  <- option [] parseVariations
+    d   <- parseDuration
+    let analysis = Analysis key (ss ++ vs)
+    (return . Value . Progression . Unit) (analysis, d)
+
+parseVariationSugar :: Parser [Variation]
+parseVariationSugar = do
+    dim <- option [] (char 'o' >> return [Dim])
+    aug <- option [] (char '+' >> return [Aug])
+    snd <- option [] (char '/' >> parseKey >>= \key -> return [Snd key])
+    return (dim ++ aug ++ snd)
+
+parseVariations :: Parser [Variation]
+parseVariations = do
+    between (symbol "|") (symbol "|") (sepBy parseVariation (symbol ","))
+    where parseVariation :: Parser Variation
+          parseVariation = choice [ char 'o' >> return Dim
+                                  , char '+' >> return Aug
+                                  , char '/' >> parseKey >>= \key -> return (Snd key)
+                                  , char 'i' >> int >>= \n -> return (Inv n)
+                                  , char 'a' >> int >>= \n -> return (Add n)
+                                  , string' "no" >> int >>= \n -> return (Sub n) ]
 
 parseDuration :: Parser Duration
-parseDuration = do
-    num <- (fromIntegral :: Integer -> Int) <$> number
-    _ <- symbol "/"
-    den <- (fromIntegral :: Integer -> Int) <$> number
-    return (num % den)
+parseDuration = parseDurationLiteral <|> parseDurationVariable
+    where parseDurationVariable = choice [ symbol "w" >> return (1 % 1)
+                                         , symbol "h" >> return (1 % 2)
+                                         , symbol "q" >> return (1 % 4)
+                                         , symbol "e" >> return (1 % 8)
+                                         , symbol "s" >> return (1 % 16)
+                                         , symbol "t" >> return (1 % 32)]
+          parseDurationLiteral = int >>= \num -> char '/' >> int >>= \den -> return (num % den)
 
 parseVariable :: Parser Expression
 parseVariable = Variable <$> ident
@@ -85,7 +129,7 @@ parseStatement :: Parser Statement
 parseStatement = do
     x <- ident
     reservedOp "="
-    e <- parseExpression
+    e <- parseExpression <* eof
     return (Def x e)
 
 parseLn :: String -> Either String Statement
