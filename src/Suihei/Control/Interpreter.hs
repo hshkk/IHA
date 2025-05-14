@@ -1,10 +1,13 @@
 module Suihei.Control.Interpreter where
 
 import Suihei.Data.Abstract (
-    Env, Bind, 
-    Exp (..), 
-    Val (..), 
-    Var)
+    Program, 
+    Statement  (..),
+    Environment, Binding, 
+    Expression (..), 
+    Value      (..), 
+    Variable,
+    Effect     (..))
 
-interpret :: Exp -> Env -> Val
+interpret :: Expression -> Environment -> Value
 interpret exp env = undefined

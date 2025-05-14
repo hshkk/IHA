@@ -1,24 +1,35 @@
 module Suihei.Data.Abstract (
-    Env, Bind, 
-    Exp (..), 
-    Val (..), 
-    Var
+    Program, 
+    Statement  (..),
+    Environment, Binding, 
+    Expression (..), 
+    Value      (..), 
+    Variable,
+    Effect     (..)
 ) where
 
 import Suihei.Data.Composition (Progression, Music)
 
-type Var = String
+type Program = [Statement]
 
-type Env = [Bind]
-type Bind = (Var, Val)
+data Statement = Def Variable Expression
+               | Eff Effect
 
-data Exp = Val Val
-         | Var Var
-         | Exp :>. Exp
-         | Exp :^. Exp
-         | Exp :>| Exp
-         | Exp :|< Exp
-         | Infer Exp
+type Variable = String
 
-data Val = Progression Progression
-         | Music Music
+type Environment = [Binding]
+type Binding = (Variable, Value)
+
+data Expression = Value Value
+                | Variable Variable
+                | Expression :>. Expression
+                | Expression :^. Expression
+                | Expression :>| Expression
+                | Expression :|< Expression
+                | Infer Expression
+
+data Value = Progression Progression
+           | Music Music
+
+data Effect = Out  Expression
+            | Midi Expression

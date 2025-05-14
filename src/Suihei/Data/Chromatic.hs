@@ -21,7 +21,7 @@ type Semitone = Int `Mod` 12
 -- | Represents (in combination with 'Diatone') the pitches of a chromatic scale.
 type Accidental = Int
 
-type Enharmonic = (Diatone, Accidental)
+type Enharmonic = Diatonic Accidental
 
 -- | Represents musical objects that are diatonic in nature.
 type Diatonic a = (Diatone, a)
