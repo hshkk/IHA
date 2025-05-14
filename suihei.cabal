@@ -72,6 +72,8 @@ library
         Suihei.Data.Notal
         Suihei.Data.Probability
         Suihei.Data.Temporal
+        Suihei.Text.Lexer
+        Suihei.Text.Parser
         Suihei.Text.Prettyprinter
 
     -- Modules included in this library but not exported.
@@ -85,6 +87,7 @@ library
         base ^>=4.17.2.1,
         extra,
         fgl,
+        parsec,
         prettyprinter
 
     -- Directories containing source files.
