@@ -33,7 +33,7 @@ instance Pretty Mode where
     pretty Min = pretty "Min"
 
 instance {-# OVERLAPS #-} Pretty Key where
-    pretty ((d, m), a) = accidental a <> mode m (fromJust (lookup d numeral_))
+    pretty ((d, a), m) = accidental a <> mode m (fromJust (lookup d numeral_))
         where mode Maj = id
               mode Min = pretty . map toLower . show
 
@@ -50,7 +50,7 @@ instance Pretty Variation where
     pretty (Inv i) = brackets (pretty "i" <> pretty i)
 
 instance {-# OVERLAPS #-} Pretty Note where
-    pretty ((d, o), a) = fromJust (lookup d note_) <> accidental a <> pretty o
+    pretty ((d, a), o) = fromJust (lookup d note_) <> accidental a <> pretty o
 
 data Numeral_ = I | II | III | IV
               | V | VI | VII deriving (Enum, Show)

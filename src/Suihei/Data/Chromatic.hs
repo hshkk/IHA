@@ -3,9 +3,9 @@
 
 module Suihei.Data.Chromatic (
     Diatone, Semitone,
+    Diatonic,
     Accidental,
     Enharmonic,
-    Diatonic,
     Chromatic, 
     i, ii, iii, iv, v, vi, vii,
     diatones,
@@ -18,16 +18,16 @@ import Suihei.Data.Modular (Mod)
 type Diatone = Int `Mod` 7
 type Semitone = Int `Mod` 12
 
+-- | Represents musical objects that are diatonic in nature.
+type Diatonic a = (Diatone, a)
+
 -- | Represents (in combination with 'Diatone') the pitches of a chromatic scale.
 type Accidental = Int
 
 type Enharmonic = Diatonic Accidental
 
--- | Represents musical objects that are diatonic in nature.
-type Diatonic a = (Diatone, a)
-
 -- | Represents musical objects that are chromatic in nature.
-type Chromatic a = (Diatonic a, Accidental)
+type Chromatic a = (Enharmonic, a)
 
 i, ii, iii, iv, v, vi, vii :: Diatone
 i   = 0

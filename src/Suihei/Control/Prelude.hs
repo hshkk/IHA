@@ -1,20 +1,21 @@
-{-# LANGUAGE LambdaCase #-}
+{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE TupleSections #-}
 
 module Suihei.Control.Prelude (
-    enharmonic,
-    notes,
-    occurrences,
-    pitchClass, pitchClasses,
     inMode, 
+    Semitonal (..),
+    occurrences,
     scale,
     interval, secundal, tertian, quartal,
-    triad, tetrad
+    triad, tetrad,
+    applyEachTo
 ) where
 
 import Suihei.Data.Chromatic (
     Diatone, diatones,
     Accidental, 
-    Chromatic, Enharmonic,
+    Enharmonic,
+    Chromatic,
     Semitone)
 import Suihei.Data.Modular (toMod, fromMod)
 import Suihei.Data.Chordal (
@@ -22,60 +23,47 @@ import Suihei.Data.Chordal (
 import Suihei.Data.Notal (Note, Octave)
 import Suihei.Data.Composition (Music, foldM)
 
-enharmonic :: Chromatic a -> Enharmonic
-enharmonic ((d, _), a) = (d, a)
+inMode :: Diatone -> Mode -> Semitone
+inMode d Maj = [0, 2, 4, 5, 7, 9, 11] !! fromMod d
+inMode d Min = [0, 2, 3, 5, 7, 8, 10] !! fromMod d
 
--- | Retrieves the constituent notes of a single parallel composition while preserving octaviation.
--- @notes@ is undefined for serial compositions, including those nested within parallel compositions.
-notes :: Music -> [Note]
-notes = foldM (\case { (Nothing, _) -> []; 
-                       (Just n, _)  -> [n] })
-              undefined
-              (++)
+class Semitonal a where
+    pitchClassOf :: a -> Semitone
+
+instance Semitonal Key where
+    pitchClassOf ((d, a), m) = d `inMode` m + toMod a
+
+instance Semitonal Note where
+    pitchClassOf n = pitchClassOf (fst n, Maj)
 
 occurrences :: Music -> [(Enharmonic, Int)]
 occurrences = merge . foldM (ins . fst) (++) (++)
     where ins :: Maybe Note -> [(Enharmonic, Int)]
           ins Nothing            = []
-          ins (Just ((d, _), a)) = [((d, a), 1)]
+          ins (Just n) = [(fst n, 1)]
           merge :: (Eq a, Num b) => [(a, b)] -> [(a, b)]
           merge = foldr (\(a, b) xs -> case lookup a xs of
                                            Just o  -> (a, o + b) : filter ((/= a) . fst) xs
                                            Nothing -> (a, b) : xs) []
 
-pitchClass :: Note -> Semitone
-pitchClass ((d, _), a) = d `inMode` Maj + toMod a
-
--- | Retrieves the pitch classes of the constituent notes of a single parallel composition while preserving octaviation.
--- @pitchClasses@ is undefined for serial compositions, including those nested within parallel compositions.
-pitchClasses :: Music -> [(Semitone, Octave)]
-pitchClasses = foldM (\case { (Nothing, _) -> []; 
-                              (Just n,  _) -> [(pitchClass n, (snd . fst) n)] }) 
-                     undefined 
-                     (++)
-
--- (((d, o), a), d')
-
-inMode :: Diatone -> Mode -> Semitone
-inMode d Maj = [0, 2, 4, 5, 7, 9, 11] !! fromMod d
-inMode d Min = [0, 2, 3, 5, 7, 8, 10] !! fromMod d
-
 -- | Computes an infinite list of functions @[a -> Chromatic a]@ representing an infinite relative scale.
 -- 
 -- Relative to C major: @[C4, ..., B4, ...] :: [Note]@
--- >>> zipWith ($) (scale ((0, Maj), 0)) (repeat 4 :: [Octave])
+-- >>> scale ((0, Maj), 0) `applyEachTo` (repeat 4 :: [Octave])
 -- [((0, 4), 0), ((1, 4), 0), ((2, 4), 0), ((3, 4), 0), ((4, 4), 0), ((5, 4), 0), ((6, 4), 0), ...]
 -- 
 -- Relative to C major: @[Eb, Fm, G, Abm, Bb, Cm, D, ...] :: [Key]@
--- >>> zipWith ($) (scale (-1, 2, Maj)) (cycle [Maj, Min] :: [Mode])
+-- >>> scale (-1, 2, Maj) `applyEachTo` (cycle [Maj, Min] :: [Mode])
 -- [((2, Maj), -1), ((3, Min), 0), ((4, Maj), 0), ((5, Min), -1), ((6, Maj), -1), ((0, Min), 0), ((1, Maj), 0), ...]
+--
+-- @applyEachTo@ is equivalent to @zipWith ($)@.
 scale :: Key -> [a -> Chromatic a]
-scale ((d, m), a)
-    = let root        = d `inMode` m + toMod a
+scale k@((d, _), m)
+    = let root        = pitchClassOf k
           intervals   = diatones `rotatedBy` fromMod d
           actuals     = actual root m <$> diatones
           accidentals = zipWith deviation intervals actuals
-          in cycle (zipWith (\i a x -> ((i, x), a)) intervals accidentals)
+          in cycle (zipWith (\i a -> ((i, a), )) intervals accidentals)
       where -- Computes the actual pitch class of a note, given the root.
             actual :: Semitone -> Mode -> Diatone -> Semitone
             actual r m d = r + d `inMode` m
@@ -113,6 +101,9 @@ triad = take 3 . tertian
 
 tetrad :: Key -> [a -> Chromatic a]
 tetrad = take 4 . tertian
+
+applyEachTo :: [a -> b] -> [a] -> [b]
+applyEachTo = zipWith ($)
 
 rotatedBy :: [a] -> Int -> [a]
 rotatedBy [] _ = []

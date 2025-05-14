@@ -5,11 +5,9 @@ module Suihei.Control.Demarcation (
 ) where
 
 import Suihei.Control.Prelude (
-    pitchClasses, 
-    enharmonic, 
-    occurrences, 
-    notes, triad)
-import Suihei.Data.Chromatic (Enharmonic, Semitone)
+    occurrences,
+    triad, applyEachTo)
+import Suihei.Data.Chromatic (Enharmonic)
 import Suihei.Data.Chordal (Mode (Maj, Min))
 import Suihei.Data.Notal (Octave, Note)
 import Suihei.Data.Composition (
@@ -21,9 +19,7 @@ import Suihei.Data.Composition (
 import Suihei.Data.Temporal (Duration)
 import Suihei.Data.Probability (Probability)
 
-import Data.List (nub, intersect, union, sort)
 import Data.List.Extra (uncons, unsnoc)
-import Data.Tuple (swap)
 
 type Demarcation a = [a]
 
@@ -59,7 +55,7 @@ occurrencesOver = concatMap occurrences
 --  (5) [Intensification] The more pronounced the effects of (2) and (3) are, the more likely a demarcation boundary is.
 --  (6) [Symmetry] Demarcations that approach the ideal subdivision of two parts of equal length are preferred over asymmetric ones.
 demarcate :: Music -> Demarcation Music
-demarcate = foldM (\n -> [Unit n])
+demarcate = foldM (\m -> [Unit m])
                   (/+/)
                   (unmarcate (:^)) . partition
     where -- Unmarcates or constructs a demarcation by concatenation.
@@ -70,16 +66,7 @@ demarcate = foldM (\n -> [Unit n])
               -- Due to pre-partitioning, m1 and m2 will have no serial compositions.
               | Just m1 <- terminal d1
               , Just m2 <- initial d2 =
-                  let m1p = pitchClasses m1
-                      m2p = pitchClasses m2
-                      -- These probabilities, including the associated formula, is arbitrary.
-                      -- A full rewrite is in order!
-                      lp   = min ((fromIntegral . length) m1p) ((fromIntegral .length) m2p)
-                      p1  = symm d1  d2
-                      p2  = mvt  m1p m2p
-                      p3  = dens m1p m2p
-                      p4  = iden (notes m1) (notes m2) in
-                  if (p1 + p2 * (lp - 1) + p3 + p4 * lp) / (2 + (lp - 1) + lp) > 0.4
+                  if undefined
                   then d1 ++ d2
                   else unmarcate (:>) d1 d2
               | otherwise = []
@@ -140,43 +127,3 @@ partition = foldM Unit
               | otherwise  = m1a // m2a :> m1b // m2b
                   where d1 = duration m1a
                         d2 = duration m2a
-
-symm :: Demarcation Music -> Demarcation Music -> Probability
-symm d1 d2 = 1 - realToFrac (abs (ds1 - ds2) / max ds1 ds2)
-    where ds1 = durationOver d1
-          ds2 = durationOver d2
-
--- | The degree of pitch class movement is determined by a Jaccard indexing over lists of pitch classes.
--- If there exists a discrepancy with the lowermost notes, the probability increases.
-mvt :: [(Semitone, Octave)] -> [(Semitone, Octave)] -> Probability
-mvt m1p m2p = let u = m1ps `union` m2ps
-                  p | null u    = 0
-                    | otherwise = 1 - fromIntegral (length (m1ps `intersect` m2ps))
-                                    / fromIntegral (length (m1ps `union` m2ps)) in
-    (case (m1l, m2l) of
-        (Nothing, _) -> 1
-        (_, Nothing) -> 1
-        (_, _)       -> if m1l /= m2l then 1 else 0.75) * p
-    where m1ps = nub (map fst m1p)
-          m2ps = nub (map fst m2p)
-          m1l  = fst <$> (uncons . sort . map swap) m1p
-          m2l  = fst <$> (uncons . sort . map swap) m2p
-
-dens :: [(Semitone, Octave)] -> [(Semitone, Octave)] -> Probability
-dens m1p m2p = fromIntegral (abs (m1ps - m2ps)) / fromIntegral (max m1ps m2ps)
-    where m1ps = length m1p
-          m2ps = length m2p
-
-iden :: [Note] -> [Note] -> Probability
-iden m1p m2p = case m1l of
-        Nothing          -> 0
-        Just ((d, _), a) -> if major d a `subset` m1ps && minor d a `subset` m2ps
-                            || minor d a `subset` m1ps && major d a `subset` m2ps then 1 else 0.5
-    where m1ps = nub (map enharmonic m1p)
-          m2ps = nub (map enharmonic m2p)
-          m1l  = fst <$> (uncons . sort) m1p
-          major d a = map (enharmonic . ($ undefined)) (triad ((d, Maj), a))
-          minor d a = map (enharmonic . ($ undefined)) (triad ((d, Min), a))
-
-subset :: Eq a => [a] -> [a] -> Bool
-subset xs ys = xs `intersect` ys == xs
