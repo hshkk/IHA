@@ -13,7 +13,7 @@ import Suihei.Data.Abstract (
     Variable,
     Effect     (..))
 import Suihei.Data.Modular (toMod)
-import Suihei.Data.Chordal (Mode (..), pattern Analysis, Variation(..), Key)
+import Suihei.Data.Chordal (Mode (..), pattern Analysis, Variation(..), Key, Analysis (..), TAnalysis)
 import Suihei.Data.Composition (pattern Unit)
 import Suihei.Data.Temporal (Duration)
 import Suihei.Text.Lexer
@@ -45,7 +45,9 @@ parseOperator :: String -> (Expression -> Expression -> Expression) -> Parser (E
 parseOperator s op = op <$ reservedOp s
 
 parseTerm :: Parser Expression
-parseTerm = try parseInfer <|> parseValue <|> parens parseExpression
+parseTerm = try parseInfer 
+        <|> parseValue 
+        <|> parens parseExpression
 
 parseInfer :: Parser Expression
 parseInfer = do
@@ -54,7 +56,8 @@ parseInfer = do
     return (Infer e)
 
 parseValue :: Parser Expression
-parseValue = try parseLiteral <|> parseVariable
+parseValue = try parseLiteral 
+         <|> parseVariable
 
 parseLiteral :: Parser Expression
 parseLiteral = try parseAbsoluteNote 
@@ -106,7 +109,20 @@ parseKey = do
                      , "VII", "VI", "V", "IV", "III", "II", "I" ]
 
 parseAnalysis :: Parser Expression
-parseAnalysis = do
+parseAnalysis = try parseShift <|> parseSymbol
+
+parseShift :: Parser Expression
+parseShift = do
+    key <- parseKey <* spaces
+    reservedOp ":"  <* spaces
+    e   <- parseAnalysis
+    (return . Value . Progression . Unit) (extract e key)
+    where extract :: Expression -> Key -> TAnalysis
+          extract (Value (Progression (Unit (a, d)))) key = (Shift key a, d)
+          extract _ _ = undefined
+
+parseSymbol :: Parser Expression
+parseSymbol = do
     key <- parseKey
     ss  <- parseVariationSugar       <* spaces
     vs  <- option [] parseVariations <* spaces
@@ -118,8 +134,9 @@ parseVariationSugar :: Parser [Variation]
 parseVariationSugar = do
     dim <- option [] (char 'o' >> return [Dim])
     aug <- option [] (char '+' >> return [Aug])
-    snd <- option [] (char '/' >> parseKey >>= \key -> return [Snd key])
-    return (dim ++ aug ++ snd)
+    sv  <- option [] (char '7' >> return [Add 7])
+    sn  <- option [] (char '/' >> parseKey >>= \key -> return [Snd key])
+    return (dim ++ aug ++ sv ++ sn)
 
 parseVariations :: Parser [Variation]
 parseVariations = do
@@ -140,9 +157,9 @@ parseDuration = parseDurationLiteral <|> parseDurationVariable
                                          , symbol "e" >> return (1 % 8)
                                          , symbol "s" >> return (1 % 16)
                                          , symbol "t" >> return (1 % 32)]
-          parseDurationLiteral = int >>= \num -> 
+          parseDurationLiteral = int      >>= \num -> 
                                  char '/' >>
-                                 int >>= \den -> 
+                                 int      >>= \den -> 
                                  return (num % den)
 
 parseVariable :: Parser Expression
@@ -170,8 +187,8 @@ parseMidi = do
 
 parseStatement :: Parser Statement
 parseStatement = (try parseEffect <|> parseDefinition) <* eof
-    where parseDefinition = ident >>= \x -> 
-                            reservedOp "=" >> 
+    where parseDefinition = ident           >>= \x -> 
+                            reservedOp "="  >> 
                             parseExpression >>= \e -> 
                             return (Def x e)
           parseEffect = choice [try parseOutf, parseOut, parseMidi]
