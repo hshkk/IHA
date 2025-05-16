@@ -1,22 +1,17 @@
-module Suihei.Text.Monads (
-    getVariations, getOctaviation, getDuration,
-    modifyVariations, modifyOctaviation, modifyDuration,
-    empty,
-    SuiheiParser, SuiheiOperatorTable,
-    returnM
+module Suihei.Text.Ancillary.State (
+    Propagation,
+    getVariations,  modifyVariations,
+    getOctaviation, modifyOctaviation,
+    getDuration,    modifyDuration,
+    empty
 ) where
 
 import Suihei.Data.Chordal (Variation)
 import Suihei.Data.Notal (Octave)
 import Suihei.Data.Temporal (Duration)
+import Suihei.Text.Ancillary.Monad (SuiheiParser, Propagation)
 
-import Text.Parsec (getState, modifyState)
-import Text.Parsec.Expr (OperatorTable)
-import Text.Parsec.Prim (ParsecT)
-
-import Data.Functor.Identity (Identity)
-
-type Propagation_ = (Maybe [Variation], Maybe Octave, Maybe Duration)
+import Text.Parsec.Prim (getState, modifyState)
 
 getVariations :: SuiheiParser (Maybe [Variation])
 getVariations = getState >>= \(vars, _, _) -> return vars
@@ -40,11 +35,5 @@ modifyDuration :: Maybe Duration -> SuiheiParser ()
 modifyDuration dur = modifyState (\(vars, oct, _) -> (vars, oct, dur))
 
 -- | The initial parser state with no active propagations.
-empty :: Propagation_
+empty :: Propagation
 empty = (Nothing, Nothing, Nothing)
-
-type SuiheiParser a        = ParsecT       String Propagation_ Identity a
-type SuiheiOperatorTable a = OperatorTable String Propagation_ Identity a
-
-returnM :: Monad m => a -> m (Maybe a)
-returnM a = return (Just a)

@@ -23,12 +23,12 @@ type Binding = (Variable, Value)
 
 data Expression = Value Value
                 | Variable Variable
+                | PartialShift Key Expression
                 | Expression :>. Expression
                 | Expression :^. Expression
                 | Expression :>| Expression
                 | Expression :|< Expression
                 | Infer Expression
-
 infixl 5 :>.
 infixl 6 :^.
 infixl 5 :>|

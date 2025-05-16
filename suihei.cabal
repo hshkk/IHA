@@ -73,9 +73,14 @@ library
         Suihei.Data.Probability
         Suihei.Data.Temporal
         Suihei.Text.Lexer
-        Suihei.Text.Monads
         Suihei.Text.Parser
         Suihei.Text.Prettyprinter
+        Suihei.Text.Ancillary.Combinator
+        Suihei.Text.Ancillary.Effect
+        Suihei.Text.Ancillary.Expression
+        Suihei.Text.Ancillary.Monad
+        Suihei.Text.Ancillary.State
+        Suihei.Text.Ancillary.Statement
 
     -- Modules included in this library but not exported.
     -- other-modules:

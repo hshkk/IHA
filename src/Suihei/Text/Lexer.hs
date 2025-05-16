@@ -5,7 +5,7 @@ module Suihei.Text.Lexer (
     reserved, reservedOp
 ) where
 
-import Suihei.Text.Monads (SuiheiParser)
+import Suihei.Text.Ancillary.Monad (SuiheiParser)
 
 import GHC.Natural (Natural)
 
