@@ -39,4 +39,4 @@ data Value = Progression Progression
 
 data Effect = Out  Expression
             | Outf Key Expression
-            | Midi Expression
+            | Midi Key Expression

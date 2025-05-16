@@ -64,7 +64,7 @@ parseTerm = parseInfer
 parseInfer :: SuiheiParser Expression
 parseInfer = do
     reserved "infer"
-    exp <- choice [parens parseExpression, parseVariable]
+    exp <- parens parseExpression <|> parseVariable
     return (Infer exp)
 
 parseValue :: SuiheiParser Expression
@@ -235,7 +235,7 @@ parseEffectAbs :: String                 -- ^ Function name
                -> SuiheiParser Statement
 parseEffectAbs fun eff = do
     reserved fun
-    exp <- choice [parens parseExpression, parseVariable]
+    exp <- parens parseExpression <|> parseVariable
     return (Eff . eff $ exp)
 
 parseEffectCon :: String                        -- ^ Function name
@@ -243,7 +243,7 @@ parseEffectCon :: String                        -- ^ Function name
               -> SuiheiParser Statement
 parseEffectCon fun eff = do
     reserved fun
-    exp <- choice [parens parseExpression, parseVariable]
+    exp <- parens parseExpression <|> parseVariable
     reserved "in"
     key <- choice [parens parseKey, parseKey] <* spaces
     return (Eff . eff key $ exp)
