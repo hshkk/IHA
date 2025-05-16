@@ -73,9 +73,9 @@ library
         Suihei.Data.Probability
         Suihei.Data.Temporal
         Suihei.Text.Lexer
+        Suihei.Text.Monads
         Suihei.Text.Parser
         Suihei.Text.Prettyprinter
-        Suihei.Text.Transformation
 
     -- Modules included in this library but not exported.
     -- other-modules:

@@ -1,8 +1,8 @@
-module Suihei.Text.Transformation (
+module Suihei.Text.Monads (
     getVariations, getOctaviation, getDuration,
     modifyVariations, modifyOctaviation, modifyDuration,
     empty,
-    Suihei, SuiheiOperatorTable,
+    SuiheiParser, SuiheiOperatorTable,
     returnM
 ) where
 
@@ -18,32 +18,32 @@ import Data.Functor.Identity (Identity)
 
 type Propagation_ = (Maybe [Variation], Maybe Octave, Maybe Duration)
 
-getVariations :: Suihei (Maybe [Variation])
+getVariations :: SuiheiParser (Maybe [Variation])
 getVariations = getState >>= \(vars, _, _) -> return vars
 
-getOctaviation :: Suihei (Maybe Octave)
+getOctaviation :: SuiheiParser (Maybe Octave)
 getOctaviation = getState >>= \(_, oct, _) -> return oct
 
-getDuration :: Suihei (Maybe Duration)
+getDuration :: SuiheiParser (Maybe Duration)
 getDuration = getState >>= \(_, _, dur) -> return dur
 
 -- | Performs a direct substitution on the active propagated variations.
-modifyVariations :: Maybe [Variation] -> Suihei ()
+modifyVariations :: Maybe [Variation] -> SuiheiParser ()
 modifyVariations vars = modifyState (\(_, oct, dur) -> (vars, oct, dur))
 
 -- | Performs a direct substitution on the active propagated octaviation.
-modifyOctaviation :: Maybe Octave -> Suihei ()
+modifyOctaviation :: Maybe Octave -> SuiheiParser ()
 modifyOctaviation oct = modifyState (\(vars, _, dur) -> (vars, oct, dur))
 
 -- | Performs a direct substitution on the active propagated duration.
-modifyDuration :: Maybe Duration -> Suihei ()
+modifyDuration :: Maybe Duration -> SuiheiParser ()
 modifyDuration dur = modifyState (\(vars, oct, _) -> (vars, oct, dur))
 
 -- | The initial parser state with no active propagations.
 empty :: Propagation_
 empty = (Nothing, Nothing, Nothing)
 
-type Suihei a              = ParsecT       String Propagation_ Identity a
+type SuiheiParser a        = ParsecT       String Propagation_ Identity a
 type SuiheiOperatorTable a = OperatorTable String Propagation_ Identity a
 
 returnM :: Monad m => a -> m (Maybe a)

@@ -5,7 +5,7 @@ module Suihei.Text.Lexer (
     reserved, reservedOp
 ) where
 
-import Suihei.Text.Transformation (Suihei)
+import Suihei.Text.Monads (SuiheiParser)
 
 import GHC.Natural (Natural)
 
@@ -24,28 +24,28 @@ import qualified Text.Parsec.Token as Token
 lexer :: TokenParser st
 lexer = suihei
 
-lexeme :: Suihei a -> Suihei a
+lexeme :: SuiheiParser a -> SuiheiParser a
 lexeme = Token.lexeme lexer
 
-ident :: Suihei String
+ident :: SuiheiParser String
 ident = Token.identifier lexer
 
-symbol :: String -> Suihei String
+symbol :: String -> SuiheiParser String
 symbol = Token.symbol lexer
 
-int :: Suihei Int
+int :: SuiheiParser Int
 int = (fromIntegral :: Integer -> Int) <$> Token.integer lexer
 
-nat :: Suihei Natural
+nat :: SuiheiParser Natural
 nat = (fromIntegral :: Integer -> Natural) <$> Token.integer lexer
 
-parens :: Suihei a -> Suihei a
+parens :: SuiheiParser a -> SuiheiParser a
 parens = Token.parens lexer
 
-reserved :: String -> Suihei ()
+reserved :: String -> SuiheiParser ()
 reserved = Token.reserved lexer
 
-reservedOp :: String -> Suihei ()
+reservedOp :: String -> SuiheiParser ()
 reservedOp = Token.reservedOp lexer
 
 suihei :: TokenParser st

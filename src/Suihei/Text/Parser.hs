@@ -19,23 +19,28 @@ import Suihei.Data.Notal (Octave)
 import Suihei.Data.Composition (pattern Unit)
 import Suihei.Data.Temporal (Duration)
 import Suihei.Text.Lexer
-import Suihei.Text.Transformation
+import Suihei.Text.Monads
 
 import Text.Parsec (string', parserZero)
 import Text.Parsec.Expr (
     Operator (Infix), Assoc (AssocLeft, AssocRight),
     buildExpressionParser)
-import Text.Parsec.Prim (runParserT)
+import Text.Parsec.Prim (ParsecT, runParserT)
 import Text.ParserCombinators.Parsec
 
 import Control.Monad (unless)
 import Data.Char (toLower)
-import Data.Functor.Identity (Identity (Identity))
+import Data.Functor.Identity (
+    Identity (Identity))
 import Data.List (elemIndex)
 import Data.Maybe (fromJust, isJust, isNothing)
 import Data.Ratio ((%))
 
-parseExpression :: Suihei Expression
+(?<|>) :: GenParser tok u a -> ParsecT [tok] u Identity a -> ParsecT [tok] u Identity a
+p1 ?<|> p2 = try p1 <|> p2
+infixr 1 ?<|>
+
+parseExpression :: SuiheiParser Expression
 parseExpression = buildExpressionParser operatorTable parseTerm
 
 operatorTable :: SuiheiOperatorTable Expression
@@ -46,39 +51,98 @@ operatorTable = [ [ ifxl (parseOperator "^"  (:^.))]
     where ifxl op = Infix op AssocLeft
           ifxr op = Infix op AssocRight
 
-parseOperator :: String -> (Expression -> Expression -> Expression) -> Suihei (Expression -> Expression -> Expression)
+parseOperator :: String 
+              -> (Expression -> Expression -> Expression) 
+              -> SuiheiParser (Expression -> Expression -> Expression)
 parseOperator str op = op <$ reservedOp str
 
-parseTerm :: Suihei Expression
-parseTerm = try parseInfer
-        <|> try parseValue
-        <|> parens parseExpression
+parseTerm :: SuiheiParser Expression
+parseTerm = parseInfer
+       ?<|> parseValue
+       ?<|> parens parseExpression
 
-parseInfer :: Suihei Expression
+parseInfer :: SuiheiParser Expression
 parseInfer = do
     reserved "infer"
     exp <- choice [parens parseExpression, parseVariable]
     return (Infer exp)
 
-parseValue :: Suihei Expression
-parseValue = try parseLiteral
-         <|> parseVariable
+parseValue :: SuiheiParser Expression
+parseValue = parseLiteral
+        ?<|> parseVariable
 
-parseLiteral :: Suihei Expression
-parseLiteral = try parseAbsoluteNote
-           <|> try parseRelativeNote
-           <|> try parseRest
-           <|> parseAnalysis
+parseLiteral :: SuiheiParser Expression
+parseLiteral = parseAbsoluteNote
+          ?<|> parseRelativeNote
+          ?<|> parseRest
+          ?<|> parseAnalysis
 
-parseAccidentals :: Suihei Accidental
-parseAccidentals = choice [ length          <$> many1 (symbol "#")
-                          , negate . length <$> many1 (symbol "b")
-                          , return 0]
+parseAbsoluteNote :: SuiheiParser Expression
+parseAbsoluteNote = do
+    name <- oneOf absolutes
+    acc  <- parseAccidentals
+    oct  <- parseAbsoluteNoteSugar <* spaces
+       ?<|> parseOctaviationPropagation (returnM =<< nat) <* spaces
+    dur  <- parseDuration
+    let dia  = fromJust (name `elemIndex` absolutes)
+    let note = ((toMod dia, acc), fromJust oct)
+    return (Value . Music . Unit $ (Just note, fromJust dur))
+    where parseAbsoluteNoteSugar :: SuiheiParser (Maybe Octave)
+          parseAbsoluteNoteSugar = do
+              oct <- nat
+              modifyOctaviation (Just oct)
+              returnM oct
+          absolutes = "CDEFGAB"
 
-parsePropagation :: Suihei (Maybe a)       -- ^ Retreive from state
-                 -> (Maybe a -> Suihei ()) -- ^ Transform the state
-                 -> Suihei (Maybe a)       -- ^ Parser
-                 -> Suihei (Maybe a)
+parseRelativeNote :: SuiheiParser Expression
+parseRelativeNote = do
+    name <- oneOf relatives
+    acc  <- parseAccidentals
+    oct  <- parseOctaviationPropagation (returnM =<< nat) <* spaces
+    dur  <- parseDuration
+    let dia  = fromJust (name `elemIndex` relatives)
+    let note = ((toMod dia, acc), fromJust oct)
+    return (Value . Music . Unit $ (Just note, fromJust dur))
+    where relatives = "1234567"
+
+parseRest :: SuiheiParser Expression
+parseRest = do
+    _ <- symbol "*"
+    dur <- parseDuration
+    return (Value . Music . Unit $ (Nothing, fromJust dur))
+
+parseAnalysis :: SuiheiParser Expression
+parseAnalysis = parseShift ?<|> parseSymbol
+
+parseShift :: SuiheiParser Expression
+parseShift = do
+    key <- parseKey <* spaces
+    reservedOp ":"  <* spaces
+    ana <- parseAnalysis
+    (return . Value . Progression . Unit) (extract ana key)
+    where extract :: Expression -> Key -> TAnalysis
+          extract (Value (Progression (Unit (ana, dur)))) key = (Shift key ana, dur)
+          extract _ _ = undefined
+
+parseSymbol :: SuiheiParser Expression
+parseSymbol = do
+    st    <- getVariations
+    key   <- parseKey
+    vars1 <- parseVariationSugar <* spaces
+    vars2 <- parseVariations     <* spaces
+    -- If no propagation or list of modifications is present, the parser defaults to no modifications.
+    vars' <- if isNothing st && isNothing vars2 then returnM [] else return vars2
+    dur   <- parseDuration
+    let analysis = Analysis key (vars1 ++ fromJust vars')
+    (return . Value . Progression . Unit) (analysis, fromJust dur)
+
+parseVariable :: SuiheiParser Expression
+parseVariable = Variable <$> ident
+
+parsePropagation :: SuiheiParser (Maybe a)       -- ^ Retreive from state
+                 -> (Maybe a -> SuiheiParser ()) -- ^ Transform the state
+                 -> SuiheiParser (Maybe a)       -- ^ Parser
+                 -> SuiheiParser (Maybe a)
 parsePropagation get modify parser = do
     st  <- get
     option st (parseTermination st <|> parseLimits)
@@ -93,47 +157,18 @@ parsePropagation get modify parser = do
               unless (isJust sym) (modify res)
               return res
 
-parseOctaviationP :: Suihei (Maybe Octave) -> Suihei (Maybe Octave)
-parseOctaviationP = parsePropagation getOctaviation modifyOctaviation
+parseOctaviationPropagation :: SuiheiParser (Maybe Octave) -> SuiheiParser (Maybe Octave)
+parseOctaviationPropagation = parsePropagation getOctaviation modifyOctaviation
 
-parseVariationP :: Suihei (Maybe [Variation]) -> Suihei (Maybe [Variation])
-parseVariationP = parsePropagation getVariations modifyVariations
+parseVariationPropagation :: SuiheiParser (Maybe [Variation]) -> SuiheiParser (Maybe [Variation])
+parseVariationPropagation = parsePropagation getVariations modifyVariations
 
-parseAbsoluteNote :: Suihei Expression
-parseAbsoluteNote = do
-    name <- oneOf absolutes
-    acc  <- parseAccidentals
-    oct  <- try parseAbsoluteNoteSugar <* spaces
-        <|> parseOctaviationP (returnM =<< nat) <* spaces
-    dur  <- parseDuration
-    let dia  = fromJust (name `elemIndex` absolutes)
-    let note = ((toMod dia, acc), fromJust oct)
-    return (Value . Music . Unit $ (Just note, fromJust dur))
-    where parseAbsoluteNoteSugar :: Suihei (Maybe Octave)
-          parseAbsoluteNoteSugar = do
-              oct <- nat
-              modifyOctaviation (Just oct)
-              returnM oct
-          absolutes = "CDEFGAB"
+parseAccidentals :: SuiheiParser Accidental
+parseAccidentals = choice [ length          <$> many1 (symbol "#")
+                          , negate . length <$> many1 (symbol "b")
+                          , return 0]
 
-parseRelativeNote :: Suihei Expression
-parseRelativeNote = do
-    name <- oneOf relatives
-    acc  <- parseAccidentals
-    oct  <- parseOctaviationP (returnM =<< nat) <* spaces
-    dur  <- parseDuration
-    let dia  = fromJust (name `elemIndex` relatives)
-    let note = ((toMod dia, acc), fromJust oct)
-    return (Value . Music . Unit $ (Just note, fromJust dur))
-    where relatives = "1234567"
-
-parseRest :: Suihei Expression
-parseRest = do
-    _ <- symbol "*"
-    dur <- parseDuration
-    return (Value . Music . Unit $ (Nothing, fromJust dur))
-
-parseKey :: Suihei Key
+parseKey :: SuiheiParser Key
 parseKey = do
     acc  <- parseAccidentals
     name <- choice (map string' analyses)
@@ -144,32 +179,7 @@ parseKey = do
                      , "VII", "VI", "V", "IV", "III", "II", "I" ]
           ordered  = reverse (take 7 analyses)
 
-parseAnalysis :: Suihei Expression
-parseAnalysis = try parseShift <|> parseSymbol
-
-parseShift :: Suihei Expression
-parseShift = do
-    key <- parseKey <* spaces
-    reservedOp ":"  <* spaces
-    ana <- parseAnalysis
-    (return . Value . Progression . Unit) (extract ana key)
-    where extract :: Expression -> Key -> TAnalysis
-          extract (Value (Progression (Unit (ana, dur)))) key = (Shift key ana, dur)
-          extract _ _ = undefined
-
-parseSymbol :: Suihei Expression
-parseSymbol = do
-    st    <- getVariations
-    key   <- parseKey
-    vars1 <- parseVariationSugar <* spaces
-    vars2 <- parseVariations     <* spaces
-    -- If no propagation or list of modifications is present, the parser defaults to no modifications.
-    vars' <- if isNothing st && isNothing vars2 then returnM [] else return vars2
-    dur   <- parseDuration
-    let analysis = Analysis key (vars1 ++ fromJust vars')
-    (return . Value . Progression . Unit) (analysis, fromJust dur)
-
-parseVariationSugar :: Suihei [Variation]
+parseVariationSugar :: SuiheiParser [Variation]
 parseVariationSugar = do
     dim <- option [] (char 'o' >> return [Dim])
     aug <- option [] (char '+' >> return [Aug])
@@ -177,9 +187,9 @@ parseVariationSugar = do
     sn  <- option [] (char '/' >> parseKey >>= \key -> return [Snd key])
     return (dim ++ aug ++ sv ++ sn)
 
-parseVariations :: Suihei (Maybe [Variation])
-parseVariations = option (Just []) (parseVariationP (Just <$> sepBy1 parseVariation (symbol ",")))
-    where parseVariation :: Suihei Variation
+parseVariations :: SuiheiParser (Maybe [Variation])
+parseVariations = option (Just []) (parseVariationPropagation (Just <$> sepBy1 parseVariation (symbol ",")))
+    where parseVariation :: SuiheiParser Variation
           parseVariation = choice [ char 'o'     >> return Dim
                                   , char '+'     >> return Aug
                                   , char '/'     >> parseKey >>= \key -> return (Snd key)
@@ -187,7 +197,7 @@ parseVariations = option (Just []) (parseVariationP (Just <$> sepBy1 parseVariat
                                   , char 'a'     >> int      >>= \n   -> return (Add n)
                                   , string' "no" >> int      >>= \n   -> return (Sub n) ]
 
-parseDuration :: Suihei (Maybe Duration)
+parseDuration :: SuiheiParser (Maybe Duration)
 parseDuration = do
     dur <- getDuration
     res <- option Nothing (parseDurationLiteral
@@ -199,14 +209,14 @@ parseDuration = do
         Nothing -> return dur
         -- Otherwise, updates the active propagated duration.
         Just _  -> modifyDuration res >> return res
-    where parseDurationVariable :: Suihei (Maybe Duration)
+    where parseDurationVariable :: SuiheiParser (Maybe Duration)
           parseDurationVariable = choice [ symbol "w" >> returnM (1 % 1)
                                          , symbol "h" >> returnM (1 % 2)
                                          , symbol "q" >> returnM (1 % 4)
                                          , symbol "e" >> returnM (1 % 8)
                                          , symbol "s" >> returnM (1 % 16)
                                          , symbol "t" >> returnM (1 % 32)]
-          parseDots :: Maybe Duration -> Suihei (Maybe Duration)
+          parseDots :: Maybe Duration -> SuiheiParser (Maybe Duration)
           parseDots dur' = do
               dots <- many (char '.')
               case dur' of
@@ -214,18 +224,15 @@ parseDuration = do
                   Just dur -> if null dots
                              then returnM 0
                              else returnM (dur * sum [1 % (2 * i) | i <- [1..length dots]])
-          parseDurationLiteral :: Suihei (Maybe Duration)
+          parseDurationLiteral :: SuiheiParser (Maybe Duration)
           parseDurationLiteral = int        >>= \num ->
                                  symbol "/" >>
                                  int        >>= \den ->
                                  returnM (num % den)
 
-parseVariable :: Suihei Expression
-parseVariable = Variable <$> ident
-
 parseEffectAbs :: String                 -- ^ Function name
                -> (Expression -> Effect) -- ^ Effect constructor
-               -> Suihei Statement
+               -> SuiheiParser Statement
 parseEffectAbs fun eff = do
     reserved fun
     exp <- choice [parens parseExpression, parseVariable]
@@ -233,7 +240,7 @@ parseEffectAbs fun eff = do
 
 parseEffectCon :: String                        -- ^ Function name
               -> (Key -> Expression -> Effect) -- ^ Effect constructor
-              -> Suihei Statement
+              -> SuiheiParser Statement
 parseEffectCon fun eff = do
     reserved fun
     exp <- choice [parens parseExpression, parseVariable]
@@ -241,17 +248,17 @@ parseEffectCon fun eff = do
     key <- choice [parens parseKey, parseKey] <* spaces
     return (Eff . eff key $ exp)
 
-parseOut :: Suihei Statement
+parseOut :: SuiheiParser Statement
 parseOut = parseEffectAbs "out" Out
 
-parseOutf :: Suihei Statement
+parseOutf :: SuiheiParser Statement
 parseOutf = parseEffectCon "out" Outf
 
-parseMidi :: Suihei Statement
+parseMidi :: SuiheiParser Statement
 parseMidi = parseEffectCon "midi" Midi
 
-parseStatement :: Suihei Statement
-parseStatement = (try parseEffect <|> parseDefinition) <* eof
+parseStatement :: SuiheiParser Statement
+parseStatement = (parseEffect ?<|> parseDefinition) <* eof
     where parseDefinition = ident           >>= \var ->
                             reservedOp "="  >>
                             parseExpression >>= \exp ->
