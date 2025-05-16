@@ -1,5 +1,4 @@
 {-# LANGUAGE FlexibleInstances #-}
-{-# LANGUAGE TupleSections #-}
 
 module Suihei.Control.Prelude (
     inMode, 
@@ -15,31 +14,32 @@ import Suihei.Data.Chromatic (
     Diatone, diatones,
     Accidental, 
     Enharmonic,
-    Chromatic,
     Semitone)
 import Suihei.Data.Modular (toMod, fromMod)
 import Suihei.Data.Chordal (
     Key, Mode (..))
-import Suihei.Data.Notal (Note, Octave)
+import Suihei.Data.Notal (Note)
 import Suihei.Data.Composition (Music, foldM)
 
 inMode :: Diatone -> Mode -> Semitone
-inMode d Maj = [0, 2, 4, 5, 7, 9, 11] !! fromMod d
-inMode d Min = [0, 2, 3, 5, 7, 8, 10] !! fromMod d
+inMode dia Maj = [0, 2, 4, 5, 7, 9, 11] !! fromMod dia
+inMode dia Min = [0, 2, 3, 5, 7, 8, 10] !! fromMod dia
 
 class Semitonal a where
     pitchClassOf :: a -> Semitone
 
 instance Semitonal Key where
-    pitchClassOf ((d, a), m) = d `inMode` m + toMod a
+    pitchClassOf (enh, mode) = 
+        let dia = fst enh
+            acc = snd enh in toMod (fromMod (dia `inMode` mode) + acc)
 
 instance Semitonal Note where
-    pitchClassOf n = pitchClassOf (fst n, Maj)
+    pitchClassOf (enh, _) = pitchClassOf (enh, Maj)
 
 occurrences :: Music -> [(Enharmonic, Int)]
 occurrences = merge . foldM (ins . fst) (++) (++)
     where ins :: Maybe Note -> [(Enharmonic, Int)]
-          ins Nothing            = []
+          ins Nothing  = []
           ins (Just n) = [(fst n, 1)]
           merge :: (Eq a, Num b) => [(a, b)] -> [(a, b)]
           merge = foldr (\(a, b) xs -> case lookup a xs of
@@ -57,20 +57,20 @@ occurrences = merge . foldM (ins . fst) (++) (++)
 -- [((2, Maj), -1), ((3, Min), 0), ((4, Maj), 0), ((5, Min), -1), ((6, Maj), -1), ((0, Min), 0), ((1, Maj), 0), ...]
 --
 -- @applyEachTo@ is equivalent to @zipWith ($)@.
-scale :: Key -> [a -> Chromatic a]
-scale k@((d, _), m)
-    = let root        = pitchClassOf k
-          intervals   = diatones `rotatedBy` fromMod d
-          actuals     = actual root m <$> diatones
+scale :: Key -> [Enharmonic]
+scale key@((dia, _), mode)
+    = let root        = pitchClassOf key
+          intervals   = diatones `rotatedBy` fromMod dia
+          actuals     = actual root mode <$> diatones
           accidentals = zipWith deviation intervals actuals
-          in cycle (zipWith (\i a -> ((i, a), )) intervals accidentals)
+          in cycle (zip intervals accidentals)
       where -- Computes the actual pitch class of a note, given the root.
             actual :: Semitone -> Mode -> Diatone -> Semitone
-            actual r m d = r + d `inMode` m
+            actual root mode dia = root + dia `inMode` mode
             -- Computes the pitch class deviation of s with respect to the "reference" pitch class d.
             deviation :: Diatone -> Semitone -> Accidental
-            deviation d s =
-                let raw = fromMod s - fromMod (d `inMode` Maj)
+            deviation dia semi =
+                let raw = fromMod semi - fromMod (dia `inMode` Maj)
                     -- Clamping the raw deviation prevents long accidental chains with simpler equivalents.
                     -- e.g., with respect to pitch class, 11 sharps is equivalent to 1 flat.
                     clamp | raw > 6   = raw - 12
@@ -80,26 +80,26 @@ scale k@((d, _), m)
 
 -- | Computes an infinite list of functions @[a -> Chromatic a]@ representing continuously stacked intervals.
 -- For instance, @interval 3@ returns an infinite list of continuously stacked thirds.
-interval :: Int -> Key -> [a -> Chromatic a]
+interval :: Int -> Key -> [Enharmonic]
 interval i = everyNth (i - 1) . scale
 
 -- | Computes an infinite list of functions @[a -> Chromatic a]@ representing continuously stacked seconds.
 -- @secundal@ is equivalent to @scale@.
-secundal :: Key -> [a -> Chromatic a]
+secundal :: Key -> [Enharmonic]
 secundal = interval 2
 
 -- | Computes an infinite list of functions @[a -> Chromatic a]@ representing continuously stacked thirds.
-tertian :: Key -> [a -> Chromatic a]
+tertian :: Key -> [Enharmonic]
 tertian = interval 3
 
 -- | Computes an infinite list of functions @[a -> Chromatic a]@ representing continuously stacked fourths.
-quartal :: Key -> [a -> Chromatic a]
+quartal :: Key -> [Enharmonic]
 quartal = interval 4
 
-triad :: Key -> [a -> Chromatic a]
+triad :: Key -> [Enharmonic]
 triad = take 3 . tertian
 
-tetrad :: Key -> [a -> Chromatic a]
+tetrad :: Key -> [Enharmonic]
 tetrad = take 4 . tertian
 
 applyEachTo :: [a -> b] -> [a] -> [b]

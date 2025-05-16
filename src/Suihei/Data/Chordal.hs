@@ -46,10 +46,10 @@ data Variation = Dim | Aug
 -- >>> V $ Set.fromList [Dim, Aug]
 -- Assertion failed
 verify :: [Variation] -> [Variation]
-verify vs = let vs' = sort (nub vs) in
-    vs' & assert (on (||) (`notElem` vs') Dim Aug)
-        & assert (length [i | i@(Inv _) <- vs'] <= 1)
-        & assert (length [s | s@(Snd _) <- vs'] <= 1)
+verify vars = let vars' = sort (nub vars) in
+    vars' & assert (on (||) (`notElem` vars') Dim Aug)
+          & assert (length [i | i@(Inv _) <- vars'] <= 1)
+          & assert (length [s | s@(Snd _) <- vars'] <= 1)
 
 -- | Represents the symbols of Roman numeric analysis as a 3-tuple of:
 --
@@ -63,7 +63,7 @@ data Analysis = A_ Key [Variation] | Shift Key Analysis
 
 -- | Constructs an analysis with an ordered set of variations.
 pattern Analysis :: Key -> [Variation] -> Analysis
-pattern Analysis k vs  <- A_ k vs
-    where Analysis k vs = A_ k (verify vs)
+pattern Analysis key vars  <- A_ key vars
+    where Analysis key vars = A_ key (verify vars)
 
 type TAnalysis = Temporal Analysis

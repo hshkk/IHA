@@ -74,39 +74,39 @@ instance Total a => Total (Composition a) where
     empty    = U_ . empty
 
 instance Total TNote where
-    duration (_, d) = d
-    empty           = (,) Rest
+    duration (_, dur) = dur
+    empty             = (,) Rest
 
 instance Total TAnalysis where
-    duration (_, d) = d
-    empty           = (,) undefined
+    duration (_, dur) = dur
+    empty             = (,) undefined
 
 class Take a where
     takenFrom   :: Duration -> a -> a
     droppedFrom :: Duration -> a -> a
 
 instance (Take a, Total a) => Take (Composition a) where
-    takenFrom d _ | d <= 0 = empty 0
-    takenFrom d (U_ x) = U_ (d `takenFrom` x)
-    takenFrom d (S_ x1 x2) = let d1 = duration x1 in
-        if d <= d1 then d `takenFrom` x1
-                   else S_ x1 ((d - d1) `takenFrom` x2)
-    takenFrom d (P_ x1 x2) = P_ (d `takenFrom` x1) (d `takenFrom` x2)
+    takenFrom dur _ | dur <= 0 = empty 0
+    takenFrom dur (U_ x)       = U_ (dur `takenFrom` x)
+    takenFrom dur (S_ x1 x2)   = let dur' = duration x1 in
+        if dur <= dur' then dur `takenFrom` x1
+                   else S_ x1 ((dur - dur') `takenFrom` x2)
+    takenFrom dur (P_ x1 x2)   = P_ (dur `takenFrom` x1) (dur `takenFrom` x2)
 
-    droppedFrom d s | d <= 0 = s
-    droppedFrom d (U_ x) = U_ (d `takenFrom` x)
-    droppedFrom d (S_ x1 x2) = let d1 = duration x1 in
-        if d <= d1 then S_ (d `droppedFrom` x1) x2
-                   else (d - d1) `droppedFrom` x2
-    droppedFrom d (P_ x1 x2) = P_ (d `droppedFrom` x1) (d `droppedFrom` x2)
+    droppedFrom dur s | dur <= 0 = s
+    droppedFrom dur (U_ x)       = U_ (dur `takenFrom` x)
+    droppedFrom dur (S_ x1 x2)   = let dur' = duration x1 in
+        if dur <= dur' then S_ (dur `droppedFrom` x1) x2
+                   else (dur - dur') `droppedFrom` x2
+    droppedFrom dur (P_ x1 x2)   = P_ (dur `droppedFrom` x1) (dur `droppedFrom` x2)
 
 instance Take TNote where
-    takenFrom   d1 (n, d2) = (n, min d1 d2)
-    droppedFrom d1 (n, d2) = (n, max 0 (d2 - d1))
+    takenFrom   dur1 (n, dur2) = (n, min dur1 dur2)
+    droppedFrom dur1 (n, dur2) = (n, max 0 (dur2 - dur1))
 
 instance Take TAnalysis where
-    takenFrom   d1 (n, d2) = (n, min d1 d2)
-    droppedFrom d1 (n, d2) = (n, max 0 (d2 - d1))
+    takenFrom   dur1 (n, dur2) = (n, min dur1 dur2)
+    droppedFrom dur1 (n, dur2) = (n, max 0 (dur2 - dur1))
 
 -- | Retrieves the first element of a composition with respect to the outermost serial composition.
 fore :: Composition a -> Composition a
