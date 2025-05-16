@@ -5,10 +5,11 @@ module Suihei.Text.Lexer (
     reserved, reservedOp
 ) where
 
+import Suihei.Text.Transformation (Suihei)
+
 import GHC.Natural (Natural)
 
 import Text.Parsec (alphaNum, letter, oneOf, (<|>))
-import Text.Parsec.String (Parser)
 import Text.Parsec.Token
     (GenLanguageDef (caseSensitive, 
                      commentStart, commentEnd,
@@ -23,28 +24,28 @@ import qualified Text.Parsec.Token as Token
 lexer :: TokenParser st
 lexer = suihei
 
-lexeme :: Parser a -> Parser a
+lexeme :: Suihei a -> Suihei a
 lexeme = Token.lexeme lexer
 
-ident :: Parser String
+ident :: Suihei String
 ident = Token.identifier lexer
 
-symbol :: String -> Parser String
+symbol :: String -> Suihei String
 symbol = Token.symbol lexer
 
-int :: Parser Int
+int :: Suihei Int
 int = (fromIntegral :: Integer -> Int) <$> Token.integer lexer
 
-nat :: Parser Natural
+nat :: Suihei Natural
 nat = (fromIntegral :: Integer -> Natural) <$> Token.integer lexer
 
-parens :: Parser a -> Parser a
+parens :: Suihei a -> Suihei a
 parens = Token.parens lexer
 
-reserved :: String -> Parser ()
+reserved :: String -> Suihei ()
 reserved = Token.reserved lexer
 
-reservedOp :: String -> Parser ()
+reservedOp :: String -> Suihei ()
 reservedOp = Token.reservedOp lexer
 
 suihei :: TokenParser st

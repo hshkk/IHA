@@ -75,6 +75,7 @@ library
         Suihei.Text.Lexer
         Suihei.Text.Parser
         Suihei.Text.Prettyprinter
+        Suihei.Text.Transformation
 
     -- Modules included in this library but not exported.
     -- other-modules:
