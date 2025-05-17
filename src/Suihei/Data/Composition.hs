@@ -6,12 +6,12 @@ module Suihei.Data.Composition (
     Progression, foldP,
     Music,       foldM,
     Total (..), Take  (..),
-    fore, aft, count,
+    fore, aft, count, trim,
 ) where
 
 import Suihei.Data.Chordal (Analysis, TAnalysis)
 import Suihei.Data.Notal (Note, TNote, pattern Rest)
-import Suihei.Data.Temporal (Duration)
+import Suihei.Data.Temporal (Duration, Temporal)
 
 data Composition a
     = U_ a
@@ -94,7 +94,7 @@ instance (Take a, Total a) => Take (Composition a) where
     takenFrom dur (P_ x1 x2)   = P_ (dur `takenFrom` x1) (dur `takenFrom` x2)
 
     droppedFrom dur s | dur <= 0 = s
-    droppedFrom dur (U_ x)       = U_ (dur `takenFrom` x)
+    droppedFrom dur (U_ x)       = U_ (dur `droppedFrom` x)
     droppedFrom dur (S_ x1 x2)   = let dur' = duration x1 in
         if dur <= dur' then S_ (dur `droppedFrom` x1) x2
                    else (dur - dur') `droppedFrom` x2
@@ -129,3 +129,18 @@ aft = fore . rev
 count :: Composition a -> Int
 count (S_ x1 x2) = count x1 + count x2
 count _          = 1
+
+-- | Removes all elements in a composition with null durations.
+-- @trim@ is often used in combination with @takenFrom@ or @droppedFrom@.
+trim :: Composition (Temporal a) -> Maybe (Composition (Temporal a))
+trim u@(U_ (_, dur))
+    | dur == 0  = Nothing
+    | otherwise = Just u
+trim s@(S_ x1 x2) = case (trim x1, trim x2) of
+    (x1', Nothing)   -> x1'
+    (Nothing, x2')   -> x2'
+    (Just _, Just _) -> Just s
+trim p@(P_ x1 x2) = case (trim x1, trim x2) of
+    (x1', Nothing)   -> x1'
+    (Nothing, x2')   -> x2'
+    (Just _, Just _) -> Just p

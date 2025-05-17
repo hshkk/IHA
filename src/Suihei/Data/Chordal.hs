@@ -15,8 +15,6 @@ import Data.Function (on, (&))
 import Data.List (nub, sort)
 
 data Mode = Maj | Min deriving (Eq, Ord)
--- | Keys are considered in relative terms. 
--- In other words, the associated `Diatone` is with respect to a given absolute key as 0.
 type Key  = Chromatic Mode
 
 -- | Represents the set of possible chord suffixes, or *variations*.

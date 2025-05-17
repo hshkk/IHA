@@ -62,6 +62,9 @@ suiheiDef = emptyDef
                 , reservedOpNames = [">", "^", ">|", "|<"]
                 , reservedNames   = [ "infer"
                                     , "out", "in"
-                                    , "midi" ]
+                                    , "midi"
+                                    , "C", "D", "E", "F", "G", "A", "B"
+                                    , "i", "ii", "iii", "iv", "v", "vi", "vii"
+                                    , "I", "II", "III", "IV", "V", "VI", "VII" ]
                 , caseSensitive   = True
                 }

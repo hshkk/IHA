@@ -3,7 +3,7 @@
 
 {-# OPTIONS_GHC -Wno-orphans #-}
 
-module Suihei.Control.Lily.Compiler where
+module Suihei.Control.Lily.Compiler () where
 
 import Suihei.Control.Compiler (Compile (..))
 import Suihei.Data.Chromatic (Enharmonic, Accidental)
@@ -22,26 +22,26 @@ import Data.Ratio (numerator, denominator, (%))
 import Data.List (elemIndex)
 import Data.Maybe (fromJust)
 
-fixed :: Doc ann -> Doc ann
-fixed s = vsep [ backslash <> pretty "version"  <+> dquotes (pretty "2.24.4")
-               , emptyDoc
-               , backslash <> pretty "score" <+> lbrace
-               , indent 4 (backslash <> pretty "fixed c'" <+> lbrace)
-               , indent 8 s
-               , indent 4 rbrace
-               , rbrace ]
+fixed_ :: Doc ann -> Doc ann
+fixed_ s = vsep [ backslash <> pretty "version"  <+> dquotes (pretty "2.24.4")
+                , emptyDoc
+                , backslash <> pretty "score" <+> lbrace
+                , indent 4 (backslash <> pretty "fixed c'" <+> lbrace)
+                , indent 8 s
+                , indent 4 rbrace
+                , rbrace ]
 
-llangle :: Doc ann
-llangle = langle <> langle
+llangle_ :: Doc ann
+llangle_ = langle <> langle
 
-rrangle :: Doc ann
-rrangle = rangle <> rangle
+rrangle_ :: Doc ann
+rrangle_ = rangle <> rangle
 
-bbackslash :: Doc ann
-bbackslash = backslash <> backslash
+bbackslash_ :: Doc ann
+bbackslash_ = backslash <> backslash
 
 instance Compile Music where
-    compile m = fixed (compile' m)
+    compile m = fixed_ (compile' m)
         where compile' :: Music -> Doc ann
               compile' (Unit (note, dur))
                   | Nothing         <- note = pretty "r" 
@@ -51,32 +51,34 @@ instance Compile Music where
                                            <> format dur
               compile' (m1 :> m2) = compile' m1 <+> compile' m2
               compile' (m1 :^ m2)
-                  | Just ms <- chord (m1 :^ m2) = llangle
-                                              <+> concatWith (<+>) (map compile' ms)
-                                              <+> bbackslash
-                                              <+> braces emptyDoc
-                                              <+> rrangle
+                  | Just ms <- chord_ (m1 :^ m2) = llangle_
+                                               <+> concatWith (<+>) (map compile' ms)
+                                               <+> bbackslash_
+                                               <+> braces emptyDoc
+                                               <+> rrangle_
                   | otherwise = let m1' = if duration (fore m1) < duration (fore m2)
                                           then m1
                                           else m2
                                     m2' = if duration (fore m1') == duration (fore m1)
                                           then m2
                                           else m1 in 
-                                llangle
+                                llangle_
                             <+> braces (compile' m2')
-                            <+> bbackslash
+                            <+> bbackslash_
                             <+> braces (compile' m1')
-                            <+> rrangle
+                            <+> rrangle_
               compile' _ = undefined
     suffix _   = ".ly"
 
-chord :: Music -> Maybe [Music]
-chord unit@(Unit _) = Just [unit]
-chord (m1 :^ m2)
-    | Just ms@(Unit m : ms') <- (++) <$> chord m1 <*> chord m2
-    , all (\(Unit m') -> snd m == snd m') ms = Just ms
+-- | Rewrites chords as a list of units.
+-- Chords are defined here as parallel compositions with no serial compositions, with all constituents having the same duration.
+chord_ :: Music -> Maybe [Music]
+chord_ unit@(Unit _) = Just [unit]
+chord_ (m1 :^ m2)
+    | Just ms@(Unit m : ms') <- (++) <$> chord_ m1 <*> chord_ m2
+    , all (\(Unit m') -> snd m == snd m') ms' = Just ms
     | otherwise = Nothing
-chord _ = Nothing
+chord_ _ = Nothing
 
 class Format_ a where
     format :: a -> Doc ann

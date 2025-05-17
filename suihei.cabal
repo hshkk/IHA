@@ -96,7 +96,8 @@ library
         extra,
         fgl,
         parsec,
-        prettyprinter
+        prettyprinter,
+        transformers
 
     -- Directories containing source files.
     hs-source-dirs:   src

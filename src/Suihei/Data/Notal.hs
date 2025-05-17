@@ -12,8 +12,6 @@ import Suihei.Data.Temporal (Temporal)
 import GHC.Natural (Natural)
 
 type Octave = Natural
--- | Notes are considered in absolute terms. 
--- In other words, the associated `Diatone` is with respect to C as 0.
 type Note   = Chromatic Octave
 
 pattern Rest :: Maybe Note
