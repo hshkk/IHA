@@ -5,6 +5,7 @@ module Suihei.Data.Abstract (
     Expression (..), 
     Value      (..), 
     Variable,
+    File,
     Effect     (..)
 ) where
 
@@ -29,6 +30,7 @@ data Expression = Value Value
                 | Expression :>| Expression
                 | Expression :|< Expression
                 | Infer Expression
+
 infixl 5 :>.
 infixl 6 :^.
 infixl 5 :>|
@@ -37,6 +39,9 @@ infixl 5 :|<
 data Value = Progression Progression
            | Music Music
 
+type File = Maybe String
+
 data Effect = Out  Expression
             | Outf Key Expression
-            | Midi Key Expression
+            | Lily Key Expression File
+            | Anno Key Expression File

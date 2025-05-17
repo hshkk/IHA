@@ -60,9 +60,11 @@ library
     -- Modules exported by the library.
     exposed-modules: 
         Suihei
+        Suihei.Control.Compiler
         Suihei.Control.Demarcation
         Suihei.Control.Interpreter
         Suihei.Control.Prelude
+        Suihei.Control.Lily.Compiler
         Suihei.Data.Abstract
         Suihei.Data.Chromatic
         Suihei.Data.Chordal

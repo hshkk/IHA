@@ -23,7 +23,11 @@ import Suihei.Data.Notal (Octave)
 import Suihei.Data.Composition (pattern Unit)
 import Suihei.Data.Temporal (Duration)
 import Suihei.Text.Lexer
-import Suihei.Text.Ancillary.Combinator ((?<|>), returnM)
+import Suihei.Text.Ancillary.Combinator (
+    (?<|>), returnM, 
+    fromJustDuration, 
+    fromJustOctaviation, 
+    fromJustVariations)
 import Suihei.Text.Ancillary.Monad (
     SuiheiParser, 
     SuiheiOperatorTable)
@@ -89,8 +93,8 @@ parseAbsoluteNote = do
        ?<|> parseOctaviationPropagation (returnM =<< nat) <* spaces
     dur  <- parseDuration
     let dia  = fromJust (name `elemIndex` absolutes)
-    let note = ((toMod dia, acc), fromJust oct)
-    return (Value . Music . Unit $ (Just note, fromJust dur))
+    let note = ((toMod dia, acc), fromJustOctaviation oct)
+    return (Value . Music . Unit $ (Just note, fromJustDuration dur))
     where parseAbsoluteNoteSugar :: SuiheiParser (Maybe Octave)
           parseAbsoluteNoteSugar = do
               oct <- nat
@@ -105,15 +109,15 @@ parseRelativeNote = do
     oct  <- parseOctaviationPropagation (returnM =<< nat) <* spaces
     dur  <- parseDuration
     let dia  = fromJust (name `elemIndex` relatives)
-    let note = ((toMod dia, acc), fromJust oct)
-    return (Value . Music . Unit $ (Just note, fromJust dur))
+    let note = ((toMod dia, acc), fromJustOctaviation oct)
+    return (Value . Music . Unit $ (Just note, fromJustDuration dur))
     where relatives = "1234567"
 
 parseRest :: SuiheiParser Expression
 parseRest = do
     _ <- symbol "*"
     dur <- parseDuration
-    return (Value . Music . Unit $ (Nothing, fromJust dur))
+    return (Value . Music . Unit $ (Nothing, fromJustDuration dur))
 
 parseAnalysis :: SuiheiParser Expression
 parseAnalysis = parseShift ?<|> parseSymbol
@@ -131,11 +135,11 @@ parseSymbol = do
     key   <- parseKey
     vars1 <- parseVariationSugar <* spaces
     vars2 <- parseVariations     <* spaces
-    -- If no propagation or list of modifications is present, the parser defaults to no modifications.
+    -- If no propagation and no list of modifications is present, the parser defaults to no modifications.
     vars' <- if isNothing st && isNothing vars2 then returnM [] else return vars2
     dur   <- parseDuration
-    let analysis = Analysis key (vars1 ++ fromJust vars')
-    (return . Value . Progression . Unit) (analysis, fromJust dur)
+    let analysis = Analysis key (vars1 ++ fromJustVariations vars')
+    (return . Value . Progression . Unit) (analysis, fromJustDuration dur)
 
 parseVariable :: SuiheiParser Expression
 parseVariable = Variable <$> ident
@@ -204,7 +208,8 @@ parseDuration = do
     res <- option Nothing (parseDurationLiteral
                       <|> (parseDurationVariable >>= \dur1  ->
                            parseDots dur1        >>= \dur2 ->
-                           returnM (fromJust dur1 + fromJust dur2))) <* spaces
+                           returnM (fromJustDuration dur1 
+                                  + fromJustDuration dur2))) <* spaces
     case res of
         -- Returns the sealed duration with no state alteration.
         Nothing -> return dur

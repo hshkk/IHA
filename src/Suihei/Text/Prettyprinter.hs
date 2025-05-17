@@ -5,10 +5,6 @@
 
 module Suihei.Text.Prettyprinter (Pretty) where
 
-import Data.Char (toLower)
-import Data.Maybe (fromJust)
-import Prettyprinter
-
 import Suihei.Data.Chromatic (Diatone, diatones, Accidental)
 import Suihei.Data.Chordal (
     Key, Mode (..),
@@ -20,6 +16,10 @@ import Suihei.Data.Composition (
     Progression, Music)
 import Suihei.Data.Temporal (Duration, Temporal)
 
+import Prettyprinter
+
+import Data.Char (toLower)
+import Data.Maybe (fromJust)
 import Data.Ratio (numerator, denominator)
 
 accidental :: Accidental -> Doc ann

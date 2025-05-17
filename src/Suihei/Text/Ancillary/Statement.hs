@@ -11,7 +11,8 @@ import Suihei.Text.Ancillary.Combinator ((?<|>))
 import Suihei.Text.Ancillary.Effect (
     parseOut, 
     parseOutf, 
-    parseMidi)
+    parseLily,
+    parseAnno)
 import Suihei.Text.Ancillary.Expression (parseExpression)
 import Suihei.Text.Ancillary.Monad (SuiheiParser)
 
@@ -24,4 +25,4 @@ parseStatement = (parseEffect ?<|> parseDefinition) <* eof
                             reservedOp "="  >>
                             parseExpression >>= \exp ->
                             return (Def var exp)
-          parseEffect = choice [try parseOutf, parseOut, parseMidi]
+          parseEffect = choice [try parseOutf, parseOut, parseLily, parseAnno]

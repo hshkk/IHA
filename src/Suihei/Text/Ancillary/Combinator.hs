@@ -1,4 +1,13 @@
-module Suihei.Text.Ancillary.Combinator where
+module Suihei.Text.Ancillary.Combinator (
+    (?<|>), returnM,
+    fromJustVariations,
+    fromJustOctaviation,
+    fromJustDuration
+) where
+
+import Suihei.Data.Chordal (Variation)
+import Suihei.Data.Notal (Octave)
+import Suihei.Data.Temporal (Duration)
 
 import Text.Parsec.Prim (ParsecT)
 import Text.ParserCombinators.Parsec (
@@ -13,3 +22,18 @@ infixr 1 ?<|>
 
 returnM :: Monad m => a -> m (Maybe a)
 returnM a = return (Just a)
+
+fromJustVariations :: Maybe [Variation] -> [Variation]
+fromJustVariations (Just vars) = vars
+fromJustVariations Nothing     = error $ "Text.Ancillary.Combinator: "
+                                      ++ "Undefined variation set"
+
+fromJustOctaviation :: Maybe Octave -> Octave
+fromJustOctaviation (Just oct) = oct
+fromJustOctaviation Nothing    = error $ "Text.Ancillary.Combinator: "
+                                      ++ "Undefined octaviation"
+
+fromJustDuration :: Maybe Duration -> Duration
+fromJustDuration (Just dur) = dur
+fromJustDuration Nothing    = error $ "Text.Ancillary.Combinator: "
+                                   ++ "Undefined duration"
