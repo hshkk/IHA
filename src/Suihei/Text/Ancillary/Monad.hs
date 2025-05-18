@@ -1,7 +1,7 @@
 module Suihei.Text.Ancillary.Monad (
     Propagation,
-    SuiheiParser,
-    SuiheiOperatorTable
+    Parser,
+    OpTable
 ) where
 
 import Suihei.Data.Chordal (Variation)
@@ -15,5 +15,5 @@ import Data.Functor.Identity (Identity)
 
 type Propagation = (Maybe [Variation], Maybe Octave, Maybe Duration)
 
-type SuiheiParser a        = ParsecT       String Propagation Identity a
-type SuiheiOperatorTable a = OperatorTable String Propagation Identity a
+type Parser  a = ParsecT       String Propagation Identity a
+type OpTable a = OperatorTable String Propagation Identity a

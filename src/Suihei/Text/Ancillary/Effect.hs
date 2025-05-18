@@ -13,13 +13,13 @@ import Suihei.Text.Ancillary.Expression (
     parseExpression,
     parseKey,
     parseVariable)
-import Suihei.Text.Ancillary.Monad (SuiheiParser)
+import Suihei.Text.Ancillary.Monad (Parser)
 
-import Text.ParserCombinators.Parsec
+import Text.ParserCombinators.Parsec hiding (Parser)
 
 parseEffect :: String                -- ^ Function name
            -> (Expression -> Effect) -- ^ Effect constructor
-           -> SuiheiParser Effect
+           -> Parser Effect
 parseEffect fun eff = do
     reserved fun
     exp <- parens parseExpression <|> parseVariable
@@ -27,7 +27,7 @@ parseEffect fun eff = do
 
 parseEffectIn :: String                        -- ^ Function name
               -> (Key -> Expression -> Effect) -- ^ Effect constructor
-              -> SuiheiParser Effect
+              -> Parser Effect
 parseEffectIn fun eff = do
     reserved fun
     exp  <- parens parseExpression <|> parseVariable
@@ -37,7 +37,7 @@ parseEffectIn fun eff = do
 
 parseEffectInAs :: String                                -- ^ Function name
                 -> (Key -> Expression -> File -> Effect) -- ^ Effect constructor
-                -> SuiheiParser Effect
+                -> Parser Effect
 parseEffectInAs fun eff = do
     reserved fun
     exp  <- parens parseExpression <|> parseVariable
@@ -46,14 +46,14 @@ parseEffectInAs fun eff = do
     file <- optionMaybe (reserved "as" >> many1 alphaNum)
     return (eff key exp file)
 
-parseOut :: SuiheiParser Statement
+parseOut :: Parser Statement
 parseOut = Eff <$> parseEffect "out" Out
 
-parseOutf :: SuiheiParser Statement
+parseOutf :: Parser Statement
 parseOutf = Eff <$> parseEffectIn "out" Outf
 
-parseLily :: SuiheiParser Statement
+parseLily :: Parser Statement
 parseLily = Eff <$> parseEffectInAs "lily" Lily
 
-parseAnno :: SuiheiParser Statement
+parseAnno :: Parser Statement
 parseAnno = Eff <$> parseEffectInAs "anno" Anno

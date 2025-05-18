@@ -8,7 +8,7 @@ module Suihei.Control.Lily.Compiler () where
 import Suihei.Control.Compiler (Compile (..))
 import Suihei.Data.Chromatic (Enharmonic, Accidental)
 import Suihei.Data.Modular (fromMod)
-import Suihei.Data.Notal (Octave)
+import Suihei.Data.Notal (Octave, Note)
 import Suihei.Data.Composition (
     fore, duration,
     Music,
@@ -21,13 +21,14 @@ import Data.Bits ((.&.))
 import Data.Ratio (numerator, denominator, (%))
 import Data.List (elemIndex)
 import Data.Maybe (fromJust)
+import Data.Tuple (swap)
 
 fixed_ :: Doc ann -> Doc ann
-fixed_ s = vsep [ backslash <> pretty "version"  <+> dquotes (pretty "2.24.4")
+fixed_ d = vsep [ backslash <> pretty "version"  <+> dquotes (pretty "2.24.4")
                 , emptyDoc
                 , backslash <> pretty "score" <+> lbrace
                 , indent 4 (backslash <> pretty "fixed c'" <+> lbrace)
-                , indent 8 s
+                , indent 8 d
                 , indent 4 rbrace
                 , rbrace ]
 
@@ -37,6 +38,12 @@ llangle_ = langle <> langle
 rrangle_ :: Doc ann
 rrangle_ = rangle <> rangle
 
+angles_ :: Doc ann -> Doc ann
+angles_ d = langle <+> d <+> rangle
+
+aangles_ :: Doc ann -> Doc ann
+aangles_ d = llangle_ <+> d <+> rrangle_
+
 bbackslash_ :: Doc ann
 bbackslash_ = backslash <> backslash
 
@@ -44,31 +51,29 @@ instance Compile Music where
     compile m = fixed_ (compile' m)
         where compile' :: Music -> Doc ann
               compile' (Unit (note, dur))
-                  | Nothing         <- note = pretty "r" 
-                                           <> format dur
-                  | Just (enh, oct) <- note = format enh 
-                                           <> format oct
-                                           <> format dur
+                  | Nothing         <- note = 
+                      pretty "r" 
+                   <> format dur
+                  | Just (enh, oct) <- note = 
+                      format (enh, oct) 
+                   <> format dur
               compile' (m1 :> m2) = compile' m1 <+> compile' m2
               compile' (m1 :^ m2)
-                  | Just ms <- chord_ (m1 :^ m2) = llangle_
-                                               <+> concatWith (<+>) (map compile' ms)
-                                               <+> bbackslash_
-                                               <+> braces emptyDoc
-                                               <+> rrangle_
-                  | otherwise = let m1' = if duration (fore m1) < duration (fore m2)
-                                          then m1
-                                          else m2
-                                    m2' = if duration (fore m1') == duration (fore m1)
-                                          then m2
-                                          else m1 in 
-                                llangle_
-                            <+> braces (compile' m2')
+                  | Just ms <- chord_ (m1 :^ m2) = 
+                      angles_ (concatWith (<+>) (map (format . note_) ms))
+                   <> format (duration (head ms))
+                  | otherwise =
+                      let m1' = if octaviation_ (fore m1) < octaviation_ (fore m2)
+                                then m2
+                                else m1
+                          m2' = if octaviation_ (fore m1) < octaviation_ (fore m2)
+                                then m1
+                                else m2 in 
+                      aangles_ (braces (backslash <> pretty "voiceOne" <+> compile' m1')
                             <+> bbackslash_
-                            <+> braces (compile' m1')
-                            <+> rrangle_
+                            <+> braces (backslash <> pretty "voiceTwo" <+> compile' m2'))
+                            <>  line
               compile' _ = undefined
-    suffix _   = ".ly"
 
 -- | Rewrites chords as a list of units.
 -- Chords are defined here as parallel compositions with no serial compositions, with all constituents having the same duration.
@@ -80,8 +85,22 @@ chord_ (m1 :^ m2)
     | otherwise = Nothing
 chord_ _ = Nothing
 
+-- | Extracts the constituent note from a (unit) musical object.
+-- @note_@ is only used when there is a guarantee that the argument will not fail the initial pattern match.
+note_ :: Music -> Note
+note_ (Unit (Just note, _)) = note
+note_ _ = undefined
+
+octaviation_ :: Music -> Maybe (Octave, Enharmonic)
+octaviation_ (Unit (note, _)) = swap <$> note
+octaviation_ (m1 :^ m2) = min (octaviation_ m1)(octaviation_ m2)
+octaviation_ _ = undefined
+
 class Format_ a where
     format :: a -> Doc ann
+
+instance Format_ Note where
+    format (enh, oct) = format enh <> format oct
 
 instance Format_ Enharmonic where
     format (dia, acc)

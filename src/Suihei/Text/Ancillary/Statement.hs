@@ -14,12 +14,12 @@ import Suihei.Text.Ancillary.Effect (
     parseLily,
     parseAnno)
 import Suihei.Text.Ancillary.Expression (parseExpression)
-import Suihei.Text.Ancillary.Monad (SuiheiParser)
+import Suihei.Text.Ancillary.Monad (Parser)
 
 import Text.ParserCombinators.Parsec (
     try, choice, eof)
 
-parseStatement :: SuiheiParser Statement
+parseStatement :: Parser Statement
 parseStatement = (parseEffect ?<|> parseDefinition) <* eof
     where parseDefinition = ident           >>= \var ->
                             reservedOp "="  >>

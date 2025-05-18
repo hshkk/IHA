@@ -13,15 +13,11 @@ import System.IO (withFile, IOMode (..))
 
 class Compile a where
     compile  :: a -> Doc ann
-    suffix   :: a -> String
-    fallback :: a -> String
     cout     :: a -> File -> IO ()
 
-    default fallback :: a -> String
-    fallback a = "a" ++ suffix a
     default cout     :: a -> File -> IO ()
     cout a file'
-        | Nothing   <- file' = withFile (fallback a)       WriteMode (`hPutDoc` doc)
-        | Just file <- file' = withFile (file ++ suffix a) WriteMode (`hPutDoc` doc)
+        | Nothing   <- file' = withFile "a.ly"          WriteMode (`hPutDoc` doc)
+        | Just file <- file' = withFile (file ++ ".ly") WriteMode (`hPutDoc` doc)
         where doc = compile a
-    {-# MINIMAL compile, suffix #-}
+    {-# MINIMAL compile #-}

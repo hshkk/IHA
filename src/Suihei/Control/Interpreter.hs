@@ -23,14 +23,12 @@ import Control.Monad.Trans.State (
     modify, get, execStateT)
 import Data.Maybe (fromJust)
 
-type Suihei a = StateT Environment IO a
+type State a = StateT Environment IO a
 
 interpret :: [Statement] -> IO ()
-interpret sts = do
-    _ <- execStateT (mapM_ statement sts) []
-    mempty
+interpret sts = execStateT (mapM_ statement sts) [] >> mempty
 
-statement :: Statement -> Suihei ()
+statement :: Statement -> State ()
 statement (Def var exp) = do
     env <- get
     let val = expression exp env
@@ -80,7 +78,7 @@ expression (exp1 :>| exp2) env
         Progression (p1 :> dur `droppedFrom` p2)
     | Music m1 <- expression exp1 env
     , Music m2 <- expression exp2 env =
-        let m3 = fore m2
+        let m3  = fore m2
             dur = duration m3 in
         Music . fromJust . trim $ (m1 :> dur `droppedFrom` m2)
     | otherwise = error "Control.Interpreter: Invalid serial composition"
@@ -88,12 +86,12 @@ expression (exp1 :>| exp2) env
 expression (exp1 :|< exp2) env
     | Progression p1 <- expression exp1 env
     , Progression p2 <- expression exp2 env =
-        let p3 = aft p1
+        let p3  = aft p1
             dur = duration p1 - duration p3 in
         Progression (dur `takenFrom` p1 :> p2)
     | Music m1 <- expression exp1 env
     , Music m2 <- expression exp2 env =
-        let m3 = aft m1
+        let m3  = aft m1
             dur = duration m1 - duration m3 in
         Music . fromJust . trim $ (dur `takenFrom` m1 :> m2)
     | otherwise = error "Control.Interpreter: Invalid serial composition"

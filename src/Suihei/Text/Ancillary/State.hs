@@ -9,29 +9,29 @@ module Suihei.Text.Ancillary.State (
 import Suihei.Data.Chordal (Variation)
 import Suihei.Data.Notal (Octave)
 import Suihei.Data.Temporal (Duration)
-import Suihei.Text.Ancillary.Monad (SuiheiParser, Propagation)
+import Suihei.Text.Ancillary.Monad (Parser, Propagation)
 
 import Text.Parsec.Prim (getState, modifyState)
 
-getVariations :: SuiheiParser (Maybe [Variation])
+getVariations :: Parser (Maybe [Variation])
 getVariations = getState >>= \(vars, _, _) -> return vars
 
-getOctaviation :: SuiheiParser (Maybe Octave)
+getOctaviation :: Parser (Maybe Octave)
 getOctaviation = getState >>= \(_, oct, _) -> return oct
 
-getDuration :: SuiheiParser (Maybe Duration)
+getDuration :: Parser (Maybe Duration)
 getDuration = getState >>= \(_, _, dur) -> return dur
 
 -- | Performs a direct substitution on the active propagated variations.
-modifyVariations :: Maybe [Variation] -> SuiheiParser ()
+modifyVariations :: Maybe [Variation] -> Parser ()
 modifyVariations vars = modifyState (\(_, oct, dur) -> (vars, oct, dur))
 
 -- | Performs a direct substitution on the active propagated octaviation.
-modifyOctaviation :: Maybe Octave -> SuiheiParser ()
+modifyOctaviation :: Maybe Octave -> Parser ()
 modifyOctaviation oct = modifyState (\(vars, _, dur) -> (vars, oct, dur))
 
 -- | Performs a direct substitution on the active propagated duration.
-modifyDuration :: Maybe Duration -> SuiheiParser ()
+modifyDuration :: Maybe Duration -> Parser ()
 modifyDuration dur = modifyState (\(vars, oct, _) -> (vars, oct, dur))
 
 -- | The initial parser state with no active propagations.
