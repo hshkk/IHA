@@ -6,7 +6,7 @@ module Suihei.Control.Demarcation (
 
 import Suihei.Control.Prelude (
     occurrences,
-    triad, applyEachTo)
+    triad)
 import Suihei.Data.Chromatic (Enharmonic)
 import Suihei.Data.Chordal (Mode (Maj, Min))
 import Suihei.Data.Notal (Octave, Note)

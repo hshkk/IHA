@@ -4,10 +4,9 @@ module Suihei.Control.Prelude (
     inMode, 
     Semitonal (..),
     occurrences,
-    scale,
+    scale, finite, relative,
     interval, secundal, tertian, quartal,
-    triad, tetrad,
-    applyEachTo
+    triad, tetrad
 ) where
 
 import Suihei.Data.Chromatic (
@@ -28,13 +27,11 @@ inMode dia Min = [0, 2, 3, 5, 7, 8, 10] !! fromMod dia
 class Semitonal a where
     pitchClassOf :: a -> Semitone
 
-instance Semitonal Key where
-    pitchClassOf (enh, mode) = 
-        let dia = fst enh
-            acc = snd enh in toMod (fromMod (dia `inMode` mode) + acc)
+instance Semitonal Enharmonic where
+    pitchClassOf (dia, acc) = dia `inMode` Maj + toMod acc
 
 instance Semitonal Note where
-    pitchClassOf (enh, _) = pitchClassOf (enh, Maj)
+    pitchClassOf (enh, _) = pitchClassOf enh
 
 occurrences :: Music -> [(Enharmonic, Int)]
 occurrences = merge . foldM (ins . fst) (++) (++)
@@ -46,27 +43,25 @@ occurrences = merge . foldM (ins . fst) (++) (++)
                                            Just o  -> (a, o + b) : filter ((/= a) . fst) xs
                                            Nothing -> (a, b) : xs) []
 
--- | Computes an infinite list of functions @[a -> Chromatic a]@ representing an infinite relative scale.
+-- | Computes an infinite list representing an infinite relative scale.
 -- 
--- Relative to C major: @[C4, ..., B4, ...] :: [Note]@
--- >>> scale ((0, Maj), 0) `applyEachTo` (repeat 4 :: [Octave])
--- [((0, 4), 0), ((1, 4), 0), ((2, 4), 0), ((3, 4), 0), ((4, 4), 0), ((5, 4), 0), ((6, 4), 0), ...]
+-- Relative to C major: @[C, ..., B, ...] :: [Enharmonic]@
+-- >>> scale ((0, 0), Maj)
+-- [(0, 0), (1, 0), (2, 0), (3, 0), (4, 0), (5, 0), (6, 0), ...]
 -- 
--- Relative to C major: @[Eb, Fm, G, Abm, Bb, Cm, D, ...] :: [Key]@
--- >>> scale (-1, 2, Maj) `applyEachTo` (cycle [Maj, Min] :: [Mode])
--- [((2, Maj), -1), ((3, Min), 0), ((4, Maj), 0), ((5, Min), -1), ((6, Maj), -1), ((0, Min), 0), ((1, Maj), 0), ...]
---
--- @applyEachTo@ is equivalent to @zipWith ($)@.
+-- Relative to C major: @[Eb, F, G, Ab, Bb, C, D, ...] :: [Enharmonic]@
+-- >>> scale ((2, -1), Maj)
+-- [(2, -1), (3, 0), (4, 0), (5, -1), (6, -1), (0, 0), (1, 0), ...]
 scale :: Key -> [Enharmonic]
-scale key@((dia, _), mode)
-    = let root        = pitchClassOf key
+scale (enh@(dia, _), mode)
+    = let root        = pitchClassOf enh
           intervals   = diatones `rotatedBy` fromMod dia
           actuals     = actual root mode <$> diatones
           accidentals = zipWith deviation intervals actuals
           in cycle (zip intervals accidentals)
       where -- Computes the actual pitch class of a note, given the root.
             actual :: Semitone -> Mode -> Diatone -> Semitone
-            actual root mode dia = root + dia `inMode` mode
+            actual root mode dia = root + (dia `inMode` mode)
             -- Computes the pitch class deviation of s with respect to the "reference" pitch class d.
             deviation :: Diatone -> Semitone -> Accidental
             deviation dia semi =
@@ -78,21 +73,29 @@ scale key@((dia, _), mode)
                           | otherwise = raw
                 in clamp
 
--- | Computes an infinite list of functions @[a -> Chromatic a]@ representing continuously stacked intervals.
+-- | Computes a finite list representing a finite relative scale of seven notes.
+finite :: Key -> [Enharmonic]
+finite = take 7 . scale
+
+relative :: Key -> Key
+relative key@(_, Maj) = (scale key !! 5, Min)
+relative key@(_, Min) = (scale key !! 2, Maj)
+
+-- | Computes an infinite list representing continuously stacked intervals.
 -- For instance, @interval 3@ returns an infinite list of continuously stacked thirds.
 interval :: Int -> Key -> [Enharmonic]
 interval i = everyNth (i - 1) . scale
 
--- | Computes an infinite list of functions @[a -> Chromatic a]@ representing continuously stacked seconds.
+-- | Computes an infinite list representing continuously stacked seconds.
 -- @secundal@ is equivalent to @scale@.
 secundal :: Key -> [Enharmonic]
 secundal = interval 2
 
--- | Computes an infinite list of functions @[a -> Chromatic a]@ representing continuously stacked thirds.
+-- | Computes an infinite list representing continuously stacked thirds.
 tertian :: Key -> [Enharmonic]
 tertian = interval 3
 
--- | Computes an infinite list of functions @[a -> Chromatic a]@ representing continuously stacked fourths.
+-- | Computes an infinite list representing continuously stacked fourths.
 quartal :: Key -> [Enharmonic]
 quartal = interval 4
 
@@ -101,9 +104,6 @@ triad = take 3 . tertian
 
 tetrad :: Key -> [Enharmonic]
 tetrad = take 4 . tertian
-
-applyEachTo :: [a -> b] -> [a] -> [b]
-applyEachTo = zipWith ($)
 
 rotatedBy :: [a] -> Int -> [a]
 rotatedBy [] _ = []

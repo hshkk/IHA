@@ -8,7 +8,8 @@ module Suihei.Control.Lily.Compiler () where
 import Suihei.Control.Compiler (Compile (..))
 import Suihei.Data.Chromatic (Enharmonic, Accidental)
 import Suihei.Data.Modular (fromMod)
-import Suihei.Data.Notal (Octave, Note)
+import Suihei.Data.Chordal (Key, Mode (..))
+import Suihei.Data.Notal (Octave, Note, pattern Rest)
 import Suihei.Data.Composition (
     fore, duration,
     Music,
@@ -22,36 +23,28 @@ import Data.Ratio (numerator, denominator, (%))
 import Data.List (elemIndex)
 import Data.Maybe (fromJust)
 import Data.Tuple (swap)
+import Suihei.Control.Prelude (relative)
 
-fixed_ :: Doc ann -> Doc ann
-fixed_ d = vsep [ backslash <> pretty "version"  <+> dquotes (pretty "2.24.4")
-                , emptyDoc
-                , backslash <> pretty "score" <+> lbrace
-                , indent 4 (backslash <> pretty "fixed c'" <+> lbrace)
-                , indent 8 d
-                , indent 4 rbrace
-                , rbrace ]
+command_ :: String -> Doc ann
+command_ s = backslash <> pretty s
 
-llangle_ :: Doc ann
-llangle_ = langle <> langle
-
-rrangle_ :: Doc ann
-rrangle_ = rangle <> rangle
-
-angles_ :: Doc ann -> Doc ann
-angles_ d = langle <+> d <+> rangle
-
-aangles_ :: Doc ann -> Doc ann
-aangles_ d = llangle_ <+> d <+> rrangle_
-
-bbackslash_ :: Doc ann
-bbackslash_ = backslash <> backslash
+fixed_ :: Key -> Doc ann -> Doc ann
+fixed_ key d = vsep [ command_ "version"  <+> dquotes (pretty "2.24.4")
+                    , emptyDoc
+                    , command_ "score" <+> lbrace
+                    , indent 4 (command_ "transpose" <+> pretty "c" <+> format key <+> lbrace)
+                    , indent 8 (command_ "fixed c'" <+> lbrace)
+                    , indent 12 (command_ "key" <+> pretty "c" <+> command_ "major")
+                    , indent 12 d
+                    , indent 8 rbrace
+                    , indent 4 rbrace
+                    , rbrace ]
 
 instance Compile Music where
-    compile m = fixed_ (compile' m)
+    compile m key = fixed_ key (compile' m)
         where compile' :: Music -> Doc ann
               compile' (Unit (note, dur))
-                  | Nothing         <- note = 
+                  | Rest            <- note = 
                       pretty "r" 
                    <> format dur
                   | Just (enh, oct) <- note = 
@@ -69,9 +62,9 @@ instance Compile Music where
                           m2' = if octaviation_ (fore m1) < octaviation_ (fore m2)
                                 then m1
                                 else m2 in 
-                      aangles_ (braces (backslash <> pretty "voiceOne" <+> compile' m1')
+                      aangles_ (braces (command_ "voiceOne" <+> compile' m1')
                             <+> bbackslash_
-                            <+> braces (backslash <> pretty "voiceTwo" <+> compile' m2'))
+                            <+> braces (command_ "voiceTwo" <+> compile' m2'))
                             <>  line
               compile' _ = undefined
 
@@ -98,6 +91,11 @@ octaviation_ _ = undefined
 
 class Format_ a where
     format :: a -> Doc ann
+
+instance Format_ Key where
+    format (enh, Maj) = format enh
+    format key        = format (maj, Maj)
+        where maj = fst (relative key)
 
 instance Format_ Note where
     format (enh, oct) = format enh <> format oct
@@ -139,3 +137,18 @@ instance Format_ Duration where
                          if dur `elem` dotted
                          then Just (near, fromJust $ dur `elemIndex` dotted)
                          else Nothing
+
+llangle_ :: Doc ann
+llangle_ = langle <> langle
+
+rrangle_ :: Doc ann
+rrangle_ = rangle <> rangle
+
+angles_ :: Doc ann -> Doc ann
+angles_ d = langle <+> d <+> rangle
+
+aangles_ :: Doc ann -> Doc ann
+aangles_ d = llangle_ <+> d <+> rrangle_
+
+bbackslash_ :: Doc ann
+bbackslash_ = backslash <> backslash
