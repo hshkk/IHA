@@ -35,10 +35,13 @@ fixed_ key d = vsep [ command_ "version"  <+> dquotes (pretty "2.24.4")
                     , command_ "score" <+> lbrace
                     , indent 4 (command_ "transpose" <+> pretty "c" <+> format key <+> lbrace)
                     , indent 8 (command_ "fixed c'" <+> lbrace)
+                    , indent 12 (command_ "tempo" <+> pretty "4" <+> equals <+> pretty "120")
                     , indent 12 (command_ "key" <+> pretty "c" <+> command_ "major")
                     , indent 12 d
                     , indent 8 rbrace
                     , indent 4 rbrace
+                    , indent 4 (command_ "layout") <+> lbrace <+> rbrace
+                    , indent 4 (command_ "midi") <+> lbrace <+> rbrace
                     , rbrace ]
 
 instance Compile Value where
@@ -92,7 +95,7 @@ note_ _ = undefined
 octaviation_ :: Music -> Maybe (Octave, Enharmonic)
 octaviation_ (Unit (note, _)) = swap <$> note
 octaviation_ (m1 :^ m2) = min (octaviation_ m1)(octaviation_ m2)
-octaviation_ _ = undefined
+octaviation_ (m1 :> m2) = min (octaviation_ m1)(octaviation_ m2)
 
 class Format_ a where
     format :: a -> Doc ann
