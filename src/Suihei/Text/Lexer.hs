@@ -2,7 +2,8 @@ module Suihei.Text.Lexer (
     lexer,
     lexeme, ident, symbol, int, nat,
     parens,
-    reserved, reservedOp
+    reserved, reservedOp,
+    whitespace
 ) where
 
 import Suihei.Text.Ancillary.Monad (Parser)
@@ -48,6 +49,9 @@ reserved = Token.reserved lexer
 reservedOp :: String -> Parser ()
 reservedOp = Token.reservedOp lexer
 
+whitespace :: Parser ()
+whitespace = Token.whiteSpace lexer
+
 suihei :: TokenParser st
 suihei = makeTokenParser suiheiDef
 
@@ -61,8 +65,8 @@ suiheiDef = emptyDef
                 , identLetter     = alphaNum <|> oneOf "_'"
                 , reservedOpNames = [">", "^", ">|", "|<"]
                 , reservedNames   = [ "infer"
-                                    , "out", "in"
-                                    , "midi"
+                                    , "out", "in", "as"
+                                    , "lily", "anno"
                                     , "C", "D", "E", "F", "G", "A", "B"
                                     , "i", "ii", "iii", "iv", "v", "vi", "vii"
                                     , "I", "II", "III", "IV", "V", "VI", "VII" ]

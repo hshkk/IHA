@@ -24,6 +24,7 @@ import Data.List (elemIndex)
 import Data.Maybe (fromJust)
 import Data.Tuple (swap)
 import Suihei.Control.Prelude (relative)
+import Suihei.Data.Abstract (Value (..))
 
 command_ :: String -> Doc ann
 command_ s = backslash <> pretty s
@@ -39,6 +40,10 @@ fixed_ key d = vsep [ command_ "version"  <+> dquotes (pretty "2.24.4")
                     , indent 8 rbrace
                     , indent 4 rbrace
                     , rbrace ]
+
+instance Compile Value where
+    compile (Music m) key       = compile m key
+    compile (Progression p) key = undefined
 
 instance Compile Music where
     compile m key = fixed_ key (compile' m)

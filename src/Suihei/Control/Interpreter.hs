@@ -11,6 +11,8 @@ import Suihei.Data.Abstract (
     Value      (..),
     Effect     (..))
 
+import Suihei.Control.Compiler (cout)
+import Suihei.Control.Lily.Compiler ()
 import Suihei.Data.Chordal (Analysis (Shift))
 import Suihei.Data.Composition (
     fore, aft,
@@ -41,6 +43,9 @@ effect :: Effect -> Environment -> IO ()
 effect (Out exp) env =
     let val = expression exp env in
     print val
+effect (Lily exp key file) env =
+    let val = expression exp env in
+    cout val key file
 effect _ _ = undefined
 
 expression :: Expression -> Environment -> Value

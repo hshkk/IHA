@@ -53,9 +53,9 @@ occurrences = merge . foldM (ins . fst) (++) (++)
 -- >>> scale ((2, -1), Maj)
 -- [(2, -1), (3, 0), (4, 0), (5, -1), (6, -1), (0, 0), (1, 0), ...]
 scale :: Key -> [Enharmonic]
-scale (enh@(dia, _), mode)
+scale (enh, mode)
     = let root        = pitchClassOf enh
-          intervals   = diatones `rotatedBy` fromMod dia
+          intervals   = diatones `rotatedBy` fromMod (fst enh)
           actuals     = actual root mode <$> diatones
           accidentals = zipWith deviation intervals actuals
           in cycle (zip intervals accidentals)
