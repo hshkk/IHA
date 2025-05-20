@@ -10,7 +10,6 @@ import Suihei.Text.Lexer (
 import Suihei.Text.Ancillary.Combinator ((?<|>))
 import Suihei.Text.Ancillary.Effect (
     parseOut,
-    parseOutf,
     parseLily,
     parseAnno)
 import Suihei.Text.Ancillary.Expression (parseExpression)
@@ -20,7 +19,7 @@ import Text.ParserCombinators.Parsec (try, choice)
 
 parseStatement :: Parser Statement
 parseStatement = parseEffect ?<|> parseDefinition
-    where parseEffect = choice [try parseOutf, parseOut, parseLily, parseAnno]
+    where parseEffect = choice [parseOut, parseLily, parseAnno]
           parseDefinition = ident           >>= \var ->
                             reservedOp "="  >>
                             parseExpression >>= \exp ->

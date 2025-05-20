@@ -17,7 +17,7 @@ import Suihei.Data.Chordal (Analysis (Shift))
 import Suihei.Data.Composition (
     fore, aft,
     Total (duration), Take (takenFrom, droppedFrom),
-    pattern Unit, pattern (:>), pattern (:^), trim)
+    pattern Unit, pattern (:>), pattern (:^), trim, Music, Progression)
 
 import Control.Monad.Trans.Class (MonadTrans (lift))
 import Control.Monad.Trans.State (
@@ -40,13 +40,13 @@ statement (Eff eff) = do
     lift (effect eff env)
 
 effect :: Effect -> Environment -> IO ()
-effect (Out exp) env =
+effect (Out exp key) env =
     let val = expression exp env in
-    print val
+    print val -- TODO: Transposition
 effect (Lily exp key file) env =
     let val = expression exp env in
     cout val key file
-effect _ _ = undefined
+effect eff _ = print eff
 
 expression :: Expression -> Environment -> Value
 
@@ -64,41 +64,60 @@ expression (PartialShift key exp) env
     | otherwise = error "Control.Interpreter: Invalid shift"
 
 expression (exp1 :>. exp2) env
-    | Progression p1 <- expression exp1 env
-    , Progression p2 <- expression exp2 env = Progression (p1 :> p2)
-    | Music m1 <- expression exp1 env
-    , Music m2 <- expression exp2 env = Music (m1 :> m2)
-    | otherwise = error "Control.Interpreter: Invalid serial composition"
+    = let m1' = extractM_ (expression exp1 env)
+          m2' = extractM_ (expression exp2 env) 
+          p1' = extractP_ (expression exp1 env)
+          p2' = extractP_ (expression exp2 env)in
+      case (m1', m2', p1', p2') of
+          (Just m1, Just m2, _, _) -> Music (m1 :> m2)
+          (_, _, Just p1, Just p2) -> Progression (p1 :> p2)
+          _ -> error "Control.Interpret: Invalid serial composition"
 
 expression (exp1 :^. exp2) env
-    | Music m1 <- expression exp1 env
-    , Music m2 <- expression exp2 env = Music (m1 :^ m2)
-    | otherwise = error "Control.Interpreter: Invalid parallel composition"
+    = let m1' = extractM_ (expression exp1 env)
+          m2' = extractM_ (expression exp2 env) in
+      case (m1', m2') of
+          (Just m1, Just m2) -> Music (m1 :^ m2)
+          _ -> error "Control.Interpret: Invalid parallel composition"
 
 expression (exp1 :>| exp2) env
-    | Progression p1 <- expression exp1 env
-    , Progression p2 <- expression exp2 env =
-        let p3 = fore p2
-            dur = duration p3 in
-        Progression (p1 :> dur `droppedFrom` p2)
-    | Music m1 <- expression exp1 env
-    , Music m2 <- expression exp2 env =
-        let m3  = fore m2
-            dur = duration m3 in
-        Music . fromJust . trim $ (m1 :> dur `droppedFrom` m2)
-    | otherwise = error "Control.Interpreter: Invalid serial composition"
+    = let m1' = extractM_ (expression exp1 env)
+          m2' = extractM_ (expression exp2 env) 
+          p1' = extractP_ (expression exp1 env)
+          p2' = extractP_ (expression exp2 env)in
+      case (m1', m2', p1', p2') of
+          (Just m1, Just m2, _, _) ->
+              let m3 = fore m2
+                  dur = duration m3 in
+              Music . fromJust . trim $ (m1 :> dur `droppedFrom` m2)
+          (_, _, Just p1, Just p2) -> 
+              let p3 = fore p2
+                  dur = duration p3 in
+              Progression . fromJust . trim $ (p1 :> dur `droppedFrom` p2)
+          _ -> error "Control.Interpret: Invalid serial composition"
 
 expression (exp1 :|< exp2) env
-    | Progression p1 <- expression exp1 env
-    , Progression p2 <- expression exp2 env =
-        let p3  = aft p1
-            dur = duration p1 - duration p3 in
-        Progression (dur `takenFrom` p1 :> p2)
-    | Music m1 <- expression exp1 env
-    , Music m2 <- expression exp2 env =
-        let m3  = aft m1
-            dur = duration m1 - duration m3 in
-        Music . fromJust . trim $ (dur `takenFrom` m1 :> m2)
-    | otherwise = error "Control.Interpreter: Invalid serial composition"
+    = let m1' = extractM_ (expression exp1 env)
+          m2' = extractM_ (expression exp2 env) 
+          p1' = extractP_ (expression exp1 env)
+          p2' = extractP_ (expression exp2 env)in
+      case (m1', m2', p1', p2') of
+          (Just m1, Just m2, _, _) ->
+              let m3 = aft m1
+                  dur = duration m1 - duration m3 in
+              Music . fromJust . trim $ (dur `takenFrom` m1 :> m2)
+          (_, _, Just p1, Just p2) ->
+              let p3 = aft p1
+                  dur = duration p1 - duration p3 in
+              Progression . fromJust . trim $ (dur `takenFrom` p1 :> p2)
+          _ -> error "Control.Interpreter: Invalid serial composition"
 
 expression (Infer exp) env = undefined
+
+extractP_ :: Value -> Maybe Progression
+extractP_ (Progression p) = Just p
+extractP_ _ = Nothing
+
+extractM_ :: Value -> Maybe Music
+extractM_ (Music m) = Just m
+extractM_ _ = Nothing

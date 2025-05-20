@@ -30,6 +30,7 @@ data Expression = Value Value
                 | Expression :>| Expression
                 | Expression :|< Expression
                 | Infer Expression
+
 infixl 5 :>.
 infixl 6 :^.
 infixl 5 :>|
@@ -40,7 +41,6 @@ data Value = Progression Progression
 
 type File = Maybe String
 
-data Effect = Out  Expression
-            | Outf Expression Key
+data Effect = Out  Expression Key
             | Lily Expression Key File
             | Anno Expression Key File

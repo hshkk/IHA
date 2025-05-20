@@ -2,6 +2,8 @@
 {-# LANGUAGE PatternSynonyms #-}
 
 module Suihei.Data.Composition (
+    Composition,
+    Serial, Parallel,
     pattern Unit, pattern (:>), pattern (:^),
     Progression, foldP,
     Music,       foldM,
@@ -28,27 +30,27 @@ foldC f _ _ (U_ x)     = f x
 foldC f g h (S_ x1 x2) = foldC f g h x1 `g` foldC f g h x2
 foldC f g h (P_ x1 x2) = foldC f g h x1 `h` foldC f g h x2
 
-class Serial_ a
-class Parallel_ a
+class Serial a
+class Parallel a
 
-instance Serial_ Analysis
+instance Serial Analysis
 
-instance Serial_ TAnalysis
+instance Serial TAnalysis
 
-instance Serial_ Note
-instance Parallel_ Note
+instance Serial Note
+instance Parallel Note
 
-instance Serial_ TNote
-instance Parallel_ TNote
+instance Serial TNote
+instance Parallel TNote
 
 pattern Unit :: a -> Composition a
 pattern Unit a = U_ a
 
-pattern (:>) :: Serial_ a => Composition a -> Composition a -> Composition a
+pattern (:>) :: Serial a => Composition a -> Composition a -> Composition a
 pattern (:>) x1 x2 = S_ x1 x2
 infixl 5 :>
 
-pattern (:^) :: Parallel_ a => Composition a -> Composition a -> Composition a
+pattern (:^) :: Parallel a => Composition a -> Composition a -> Composition a
 pattern (:^) x1 x2 = P_ x1 x2
 infixl 6 :^
 
