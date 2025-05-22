@@ -1,4 +1,5 @@
 {-# LANGUAGE PatternSynonyms #-}
+{-# LANGUAGE TupleSections #-}
 
 module Suihei.Text.Ancillary.Expression (
     parseExpression,
@@ -19,8 +20,8 @@ import Suihei.Data.Chordal (
     Key, Mode (..),
     pattern Analysis,
     Variation (..))
-import Suihei.Data.Notal (Octave)
-import Suihei.Data.Composition (pattern Unit)
+import Suihei.Data.Notal (Octave, Note)
+import Suihei.Data.Composition (pattern Unit, pattern (:^))
 import Suihei.Data.Temporal (Duration)
 import Suihei.Text.Lexer
 import Suihei.Text.Ancillary.Combinator (
@@ -80,21 +81,33 @@ parseValue = parseLiteral
         ?<|> parseVariable
 
 parseLiteral :: Parser Expression
-parseLiteral = parseAbsoluteNote
+parseLiteral = parseChord
+           <|> parseRest
+          ?<|> parseAbsoluteNote
           ?<|> parseRelativeNote
-          ?<|> parseRest
           ?<|> parseAnalysis
 
-parseAbsoluteNote :: Parser Expression
-parseAbsoluteNote = do
+parseChord :: Parser Expression
+parseChord = do
+    _     <- symbol "["
+    notes <- sepBy1 parseNote spaces
+    _     <- symbol "]"
+    dur   <- parseDuration
+    let m = Value . Music $ foldl1 (:^) (map (Unit . (, fromJustDuration dur) . Just) notes)
+    return m
+
+parseNote :: Parser Note
+parseNote = parseAbsolute ?<|> parseRelative
+
+parseAbsolute :: Parser Note
+parseAbsolute = do
     name <- oneOf absolutes
-    acc  <- parseAccidentals
+    acc  <- parseAccidentals 
     oct  <- parseAbsoluteNoteSugar <* spaces
        ?<|> parseOctaviationPropagation (returnM =<< nat) <* spaces
-    dur  <- parseDuration
     let dia  = fromJust (name `elemIndex` absolutes)
     let note = ((toMod dia, acc), fromJustOctaviation oct)
-    return (Value . Music . Unit $ (Just note, fromJustDuration dur))
+    return note
     where parseAbsoluteNoteSugar :: Parser (Maybe Octave)
           parseAbsoluteNoteSugar = do
               oct <- nat
@@ -102,16 +115,27 @@ parseAbsoluteNote = do
               returnM oct
           absolutes = "CDEFGAB"
 
-parseRelativeNote :: Parser Expression
-parseRelativeNote = do
+parseRelative :: Parser Note
+parseRelative = do
     name <- oneOf relatives
     acc  <- parseAccidentals
     oct  <- parseOctaviationPropagation (returnM =<< nat) <* spaces
-    dur  <- parseDuration
     let dia  = fromJust (name `elemIndex` relatives)
     let note = ((toMod dia, acc), fromJustOctaviation oct)
-    return (Value . Music . Unit $ (Just note, fromJustDuration dur))
+    return note
     where relatives = "1234567"
+
+parseAbsoluteNote :: Parser Expression
+parseAbsoluteNote = do
+    note <- parseAbsolute
+    dur  <- parseDuration
+    return (Value . Music . Unit $ (Just note, fromJustDuration dur))
+
+parseRelativeNote :: Parser Expression
+parseRelativeNote = do
+    note <- parseRelative
+    dur  <- parseDuration
+    return (Value . Music . Unit $ (Just note, fromJustDuration dur))
 
 parseRest :: Parser Expression
 parseRest = do
@@ -150,9 +174,9 @@ parsePropagation :: Parser (Maybe a)       -- ^ Retreive from state
                  -> Parser (Maybe a)
 parsePropagation get modify parser = do
     st  <- get
-    option st (parseTermination st <|> parseLimits)
+    option st (parseLimits ?<|> parseTermination st)
     where parseTermination st = do
-              _   <- symbol "*"
+              _   <- symbol "|"
               modify Nothing
               return st
           parseLimits = do

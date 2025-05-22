@@ -25,15 +25,13 @@ parseEffect fun eff = do
     exp <- parens parseExpression <|> parseVariable
     return (eff exp)
 
-parseEffectIn :: String                        -- ^ Function name
-              -> (Expression -> Key -> Effect) -- ^ Effect constructor
+parseEffectIn :: String                              -- ^ Function name
+              -> (Expression -> Maybe Key -> Effect) -- ^ Effect constructor
               -> Parser Effect
 parseEffectIn fun eff = do
     reserved fun
     exp  <- parens parseExpression <|> parseVariable
-    key <- option 
-           ((0, 0), Maj) 
-           (reserved "in" >> choice [parens parseKey, parseKey] <* spaces)
+    key <- optionMaybe (reserved "in" >> choice [parens parseKey, parseKey] <* spaces)
     return (eff exp key)
 
 parseEffectInAs :: String                                -- ^ Function name

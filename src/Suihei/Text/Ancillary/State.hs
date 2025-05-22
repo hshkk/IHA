@@ -3,6 +3,7 @@ module Suihei.Text.Ancillary.State (
     getVariations,  modifyVariations,
     getOctaviation, modifyOctaviation,
     getDuration,    modifyDuration,
+    reset,
     empty
 ) where
 
@@ -21,6 +22,12 @@ getOctaviation = getState >>= \(_, oct, _) -> return oct
 
 getDuration :: Parser (Maybe Duration)
 getDuration = getState >>= \(_, _, dur) -> return dur
+
+reset :: Parser ()
+reset = do
+    modifyVariations Nothing
+    modifyOctaviation Nothing
+    modifyDuration Nothing
 
 -- | Performs a direct substitution on the active propagated variations.
 modifyVariations :: Maybe [Variation] -> Parser ()
