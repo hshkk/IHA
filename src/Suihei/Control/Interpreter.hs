@@ -12,7 +12,6 @@ import Suihei.Data.Abstract (
     Effect     (..))
 
 import Suihei.Control.Compiler (cout)
-import Suihei.Control.Lily.Compiler ()
 import Suihei.Data.Chordal (Analysis (Shift))
 import Suihei.Data.Composition (
     fore, aft,
@@ -40,9 +39,15 @@ statement (Eff eff) = do
     lift (effect eff env)
 
 effect :: Effect -> Environment -> IO ()
-effect (Out exp key) env =
+effect (Out exp Nothing) env =
     let val = expression exp env in
-    print val -- TODO: Transposition
+    print val
+-- TODO: Transposition
+effect (Out exp (Just key)) env =
+    let val = expression exp env in
+    case val of
+        Music m       -> print val
+        Progression p -> print val
 effect (Lily exp key file) env =
     let val = expression exp env in
     cout val key file

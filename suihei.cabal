@@ -64,7 +64,7 @@ library
         Suihei.Control.Demarcation
         Suihei.Control.Interpreter
         Suihei.Control.Prelude
-        Suihei.Control.Lily.Compiler
+        Suihei.Control.Template
         Suihei.Data.Abstract
         Suihei.Data.Chromatic
         Suihei.Data.Chordal

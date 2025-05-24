@@ -41,6 +41,6 @@ data Value = Progression Progression
 
 type File = Maybe String
 
-data Effect = Out  Expression Key
+data Effect = Out  Expression (Maybe Key)
             | Lily Expression Key File
             | Anno Expression Key File

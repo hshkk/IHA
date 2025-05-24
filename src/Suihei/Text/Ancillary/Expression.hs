@@ -19,7 +19,8 @@ import Suihei.Data.Modular (toMod)
 import Suihei.Data.Chordal (
     Key, Mode (..),
     pattern Analysis,
-    Variation (..))
+    Variation (..),
+    pattern Dim, pattern Aug)
 import Suihei.Data.Notal (Octave, Note)
 import Suihei.Data.Composition (pattern Unit, pattern (:^))
 import Suihei.Data.Temporal (Duration)

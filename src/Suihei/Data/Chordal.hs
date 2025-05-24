@@ -3,11 +3,12 @@
 module Suihei.Data.Chordal (
     Mode (..), Key,
     Variation (..),
+    pattern Dim, pattern Aug,
     Analysis, pattern Analysis, pattern Shift,
     TAnalysis
 ) where
 
-import Suihei.Data.Chromatic (Chromatic)
+import Suihei.Data.Chromatic (Accidental, Chromatic)
 import Suihei.Data.Temporal (Temporal)
 
 import Control.Exception (assert)
@@ -19,17 +20,22 @@ type Key  = Chromatic Mode
 
 -- | Represents the set of possible chord suffixes, or *variations*.
 --
--- [Diminution] Lowers the fifth by a semitone.
--- [Augmentation] Raises the fifth by a semitone.
+-- [Application] Refers to secondary chords "borrowed" from other keys.
+-- [Inversion] Rearranges the order of notes in the chord.
+-- [Adjustment] Adjusts a tone by an accidental.
 -- [Addition] Adds a tone to the chord.
 -- [Omission] Omits a tone from the chord.
--- [Inversion] Rearranges the order of notes in the chord.
--- [Application] Refers to secondary chords "borrowed" from other keys.
-data Variation = Dim | Aug
-               | Snd Key
-               | Add Int | Sub Int
+data Variation = Snd Key
                | Inv Int
+               | Adj Int Accidental
+               | Add Int | Sub Int
                deriving (Eq, Ord)
+
+pattern Dim :: Variation
+pattern Dim = Adj 5 (-1)
+
+pattern Aug :: Variation
+pattern Aug = Adj 5 1
 
 -- | Transforms a list of variations into an ordered set.
 -- 

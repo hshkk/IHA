@@ -9,7 +9,9 @@ import Suihei.Data.Chromatic (Diatone, diatones, Accidental)
 import Suihei.Data.Chordal (
     Key, Mode (..),
     Analysis  (..), pattern Analysis,
-    Variation (..), TAnalysis)
+    Variation (..), 
+    pattern Dim, pattern Aug,
+    TAnalysis)
 import Suihei.Data.Notal (Note, pattern Rest, TNote)
 import Suihei.Data.Composition (
     pattern Unit, pattern (:>), pattern (:^),
