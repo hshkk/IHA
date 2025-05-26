@@ -25,6 +25,7 @@ import Control.Monad.Trans.State (
     StateT,
     get, modify, evalStateT)
 
+import Data.Bifunctor (second)
 import Data.Functor.Identity (Identity (runIdentity))
 import Data.List.Extra (snoc, sortBy)
 import Data.List (delete, find)
@@ -65,7 +66,7 @@ notes key (Sub i:vs)
                  = note `delete` result
     | otherwise  = result
     where result = notes key vs
-          inKey  = i `inKey_` key
+          inKey  = second succ (i `inKey_` key)
 
 comparator :: (Ord a, Ord b) => (a, b) -> (a, b) -> Ordering
 comparator = comparing snd <> comparing fst

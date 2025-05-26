@@ -14,7 +14,7 @@ module Suihei.Text.Ancillary.Expression (
 import Suihei.Data.Abstract (
     Expression (..),
     Value      (..))
-import Suihei.Data.Chromatic (Accidental)
+import Suihei.Data.Chromatic (Accidental, flat)
 import Suihei.Data.Modular (toMod)
 import Suihei.Data.Chordal (
     Key, Mode (..),
@@ -213,7 +213,7 @@ parseVariationSugar :: Parser [Variation]
 parseVariationSugar = do
     dim <- option [] (char 'o' >> return [Dim])
     aug <- option [] (char '+' >> return [Aug])
-    sv  <- option [] (char '7' >> return [Add 7])
+    sv  <- option [] (char '7' >> return [Adj 7 flat, Add 7])
     sn  <- option [] (char '/' >> parseKey >>= \key -> return [Snd key])
     return (dim ++ aug ++ sv ++ sn)
 
