@@ -15,7 +15,7 @@ import Suihei.Text.Ancillary.Effect (
 import Suihei.Text.Ancillary.Expression (parseExpression)
 import Suihei.Text.Ancillary.Monad (Parser)
 
-import Text.ParserCombinators.Parsec (try, choice)
+import Text.ParserCombinators.Parsec (choice)
 
 parseStatement :: Parser Statement
 parseStatement = parseEffect ?<|> parseDefinition
