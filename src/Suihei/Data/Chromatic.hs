@@ -7,7 +7,7 @@ module Suihei.Data.Chromatic (
     Accidental,
     Enharmonic,
     Chromatic, 
-    i, ii, iii, iv, v, vi, vii,
+    diaFrom, accFrom,
     diatones,
     dflat, flat, nat, sharp, dsharp,
 ) where
@@ -29,17 +29,14 @@ type Enharmonic = Diatonic Accidental
 -- | Represents musical objects that are chromatic in nature.
 type Chromatic a = (Enharmonic, a)
 
-i, ii, iii, iv, v, vi, vii :: Diatone
-i   = 0
-ii  = 1
-iii = 2
-iv  = 3
-v   = 4
-vi  = 5
-vii = 6
+diaFrom :: Chromatic a -> Diatone
+diaFrom = fst . fst
+
+accFrom :: Chromatic a -> Accidental
+accFrom = snd . fst
 
 diatones :: [Diatone]
-diatones = [i..vii]
+diatones = [0..6]
 
 dflat, flat, nat, sharp, dsharp :: Accidental
 dflat  = -2

@@ -13,17 +13,15 @@ import Text.Parsec.Prim (runParserT)
 import Text.ParserCombinators.Parsec (eof, many, (<|>), string)
 
 import Control.Monad (void)
-import Data.Functor.Identity (
-    Identity (Identity))
+import Data.Functor.Identity (Identity (runIdentity))
 import Data.Maybe (catMaybes)
 
 execute :: String  -> IO ()
 execute file = do
     prog <- readFile file
-    case runParserT parseFile empty file prog of
-        Identity (Right res) -> do
-            interpret res
-        Identity (Left  err) -> print err
+    case runIdentity $ runParserT parseFile empty file prog of
+        Right res -> interpret res
+        Left  err -> print err
 
 parseFile :: Parser [Statement]
 parseFile = do

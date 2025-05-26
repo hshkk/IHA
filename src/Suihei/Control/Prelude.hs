@@ -4,21 +4,28 @@ module Suihei.Control.Prelude (
     inMode, 
     Semitonal (..),
     occurrences,
+    shift,
     scale, finite, relative,
     interval, secundal, tertian, quartal,
-    triad, tetrad
+    triad,
+    tetrad,
+    octaviate,
+    rotatedBy, everyNth
 ) where
 
 import Suihei.Data.Chromatic (
     Diatone, diatones,
-    Accidental, 
+    Accidental,
     Enharmonic,
-    Semitone)
+    Semitone,
+    accFrom, diaFrom)
 import Suihei.Data.Modular (toMod, fromMod)
 import Suihei.Data.Chordal (
     Key, Mode (..))
-import Suihei.Data.Notal (Note)
+import Suihei.Data.Notal (Note, Octave)
 import Suihei.Data.Composition (Music, foldM)
+
+import Data.Bifunctor (second)
 
 inMode :: Diatone -> Mode -> Semitone
 inMode dia Maj = [0, 2, 4, 5, 7, 9, 11] !! fromMod dia
@@ -42,6 +49,14 @@ occurrences = merge . foldM (ins . fst) (++) (++)
           merge = foldr (\(a, b) xs -> case lookup a xs of
                                            Just o  -> (a, o + b) : filter ((/= a) . fst) xs
                                            Nothing -> (a, b) : xs) []
+
+shift :: Key -- ^ Input key
+      -> Key -- ^ Degree of shift
+      -> Key
+shift key key' = let acc = accFrom key' 
+                     enh = second (+ acc) (finite key !! fromMod (diaFrom key'))
+                     mode = snd key 
+                 in (enh, mode)
 
 -- | Computes an infinite list representing an infinite relative scale.
 -- 
@@ -104,6 +119,12 @@ triad = take 3 . tertian
 
 tetrad :: Key -> [Enharmonic]
 tetrad = take 4 . tertian
+
+octaviate :: Octave -> [Enharmonic] -> [Note]
+octaviate oct enhs = 
+    zip enhs (scanl (\c (enh, enh') -> if enh' < enh
+                                       then c + 1 
+                                       else c) oct (zip enhs (tail enhs)))
 
 rotatedBy :: [a] -> Int -> [a]
 rotatedBy [] _ = []

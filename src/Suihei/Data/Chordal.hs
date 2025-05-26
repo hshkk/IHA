@@ -2,6 +2,7 @@
 
 module Suihei.Data.Chordal (
     Mode (..), Key,
+    base,
     Variation (..),
     pattern Dim, pattern Aug,
     Analysis, pattern Analysis, pattern Shift,
@@ -17,6 +18,11 @@ import Data.List (nub, sort)
 
 data Mode = Maj | Min deriving (Eq, Ord)
 type Key  = Chromatic Mode
+
+-- | Represents the "baseline" or reference key.
+-- @c@ is used in reification, particularly if an input key is omitted.
+base :: Key
+base = ((0, 0), Maj)
 
 -- | Represents the set of possible chord suffixes, or *variations*.
 --
@@ -39,21 +45,29 @@ pattern Aug = Adj 5 1
 
 -- | Transforms a list of variations into an ordered set.
 -- 
--- Then, aseertions are made such that: 
---  - Diminishment and augmentation may not coexist.
---  - Multiple inversions may not coexist.
+-- Then, aseertions are made such that:
+--  - Multiple adjustments on the same interval may not coexist.
+--  - Multiple additions on the same interval may not coexist.
+--  - Multiple omissions on the same interval may not coexist.
 --  - Multiple secondaries may not coexist.
+--  - Additions on the first, third, and fifth interval are forbidden.
 --
--- >>> V $ Set.fromList [Dim]
--- fromList [Dim]
+-- >>> verify [Dim]
+-- [Dim]
 --
--- >>> V $ Set.fromList [Dim, Aug]
+-- >>> verify [Dim, Aug]
 -- Assertion failed
 verify :: [Variation] -> [Variation]
 verify vars = let vars' = sort (nub vars) in
-    vars' & assert (on (||) (`notElem` vars') Dim Aug)
-          & assert (length [i | i@(Inv _) <- vars'] <= 1)
-          & assert (length [s | s@(Snd _) <- vars'] <= 1)
+    vars' & assert (length [s | s@(Snd _) <- vars'] <= 1)
+          & assert (unique (adjs vars'))
+          & assert (unique (adds vars'))
+          & assert (unique (subs vars'))
+          & assert (all (`notElem` adds vars') [1, 3, 5])
+    where unique p   = length (nub p) == length p
+          adjs vars' = [n | Adj n _ <- vars']
+          adds vars' = [n | Add n   <- vars']
+          subs vars' = [n | Sub n   <- vars']
 
 -- | Represents the symbols of Roman numeric analysis as a 3-tuple of:
 --

@@ -64,6 +64,7 @@ library
         Suihei.Control.Demarcation
         Suihei.Control.Interpreter
         Suihei.Control.Prelude
+        Suihei.Control.Reification
         Suihei.Control.Template
         Suihei.Data.Abstract
         Suihei.Data.Chromatic

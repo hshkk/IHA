@@ -7,7 +7,7 @@ import Suihei.Data.Abstract (
     Expression (..),
     Effect     (..), File)
 import Suihei.Data.Chordal (
-    Key, Mode (Maj))
+    Key, base)
 import Suihei.Text.Lexer
 import Suihei.Text.Ancillary.Expression (
     parseExpression,
@@ -41,7 +41,7 @@ parseEffectInAs fun eff = do
     reserved fun
     exp  <- parens parseExpression <|> parseVariable
     key <- option 
-           ((0, 0), Maj) 
+           base
            (reserved "in" >> choice [parens parseKey, parseKey] <* spaces)
     file <- optionMaybe (reserved "as" >> many1 alphaNum)
     return (eff exp key file)

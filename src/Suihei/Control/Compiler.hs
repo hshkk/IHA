@@ -5,6 +5,7 @@
 module Suihei.Control.Compiler (Compile (..)) where
 
 import Suihei.Control.Prelude (relative)
+import Suihei.Control.Reification (reify)
 import Suihei.Data.Abstract (File, Value (..))
 import Suihei.Data.Chromatic (Enharmonic, Accidental)
 import Suihei.Data.Modular (fromMod)
@@ -57,7 +58,7 @@ fixed_ key d = vsep [ command_ "version"  <+> dquotes (pretty "2.24.4")
 
 instance Compile Value where
     compile (Music m) key       = compile m key
-    compile (Progression p) key = undefined
+    compile (Progression p) key = compile (reify p) key
 
 instance Compile Music where
     compile m key = fixed_ key (compile' m)

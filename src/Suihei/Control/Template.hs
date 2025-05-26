@@ -12,7 +12,9 @@ module Suihei.Control.Template (
     pattern Atom
 ) where
 
-import Suihei.Control.Prelude (occurrences, Semitonal (pitchClassOf))
+import Suihei.Control.Prelude (
+    Semitonal (pitchClassOf), 
+    occurrences)
 import Suihei.Data.Chromatic (Semitone)
 import Suihei.Data.Composition (Music, Progression)
 import Suihei.Data.Modular (toMod)
@@ -47,21 +49,22 @@ weight = fill . map (first pitchClassOf) . occurrences
                    | s <- [0..11]]
 
 score :: Vector -> Template -> (Score, Root)
-score w f =
-    let fs = take 12 (iterate (map (+ 1)) f)
-        ss = [(score' w f',
-               toMod (fromJust (f' `elemIndex` fs)))
-             | f' <- fs]
+score w t =
+    let ts = take 12 (iterate (map (+ 1)) t)
+        ss = [(score' w t',
+               toMod (fromJust (t' `elemIndex` ts)))
+             | t' <- ts]
     in maximum ss
-    where score' []          _  = 0
-          score' ((s, c):w') f' = if s `elem` f'
+    where score' :: Vector -> Template -> Score
+          score' []          _  = 0
+          score' ((s, c):w') t' = if s `elem` t'
                                   then if c /= 0
                                        -- Positive evidence:
-                                       then c + score' w' f'
+                                       then c + score' w' t'
                                        -- Misses:
-                                       else -1 + score' w' f'
+                                       else -1 + score' w' t'
                                   -- Negative evidence:
-                                  else -c + score' w' f'
+                                  else -c + score' w' t'
 
 pattern Atom :: Template
 pattern Atom = [0]

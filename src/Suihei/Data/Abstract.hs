@@ -12,10 +12,13 @@ module Suihei.Data.Abstract (
 import Suihei.Data.Chordal (Key)
 import Suihei.Data.Composition (Progression, Music)
 
+import Suihei.Text.Prettyprinter ()
+
 type Program = [Statement]
 
 data Statement = Def Variable Expression
                | Eff Effect
+               deriving Show
 
 type Variable = String
 
@@ -30,6 +33,7 @@ data Expression = Value Value
                 | Expression :>| Expression
                 | Expression :|< Expression
                 | Infer Expression
+                deriving Show
 
 infixl 5 :>.
 infixl 6 :^.
@@ -38,9 +42,11 @@ infixl 5 :|<
 
 data Value = Progression Progression
            | Music Music
+           deriving Show
 
 type File = Maybe String
 
 data Effect = Out  Expression (Maybe Key)
             | Lily Expression Key File
             | Anno Expression Key File
+            deriving Show
