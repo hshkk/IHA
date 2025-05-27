@@ -51,7 +51,7 @@ reify p = let -- As progressions can only consist of serial compositions, they c
 notes :: Key -> [Variation] -> [Note]
 notes key []            = octaviate_ (triad key)
 notes key (Snd key':vs) = notes (shift key key') vs
-notes key (Inv i:vs)    = notes key vs `rotatedBy` i
+notes key (Inv i:vs)    = notes key vs `rotatedBy` (i - 1)
 notes key (Adj i acc:vs)
     | Just note <- find (\(enh, _) -> fst enh == diaFrom inKey) result
                  = sortBy comparator ((note `delete` result) `snoc` adjust_ acc inKey)

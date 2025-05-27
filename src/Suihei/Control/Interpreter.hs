@@ -117,7 +117,10 @@ expression (exp1 :|< exp2) env
               Progression . fromJust . trim $ (dur `takenFrom` p1 :> p2)
           _ -> error "Control.Interpreter: Invalid serial composition"
 
-expression (Infer exp) env = undefined
+-- When inferring with aspect to a key, the corresponding (music) expression should be shifted by that key.
+expression (Infer exp key) env = undefined
+
+expression (Reify exp key) env = undefined
 
 extractP_ :: Value -> Maybe Progression
 extractP_ (Progression p) = Just p

@@ -47,12 +47,13 @@ instance Pretty Analysis where
     pretty (Shift k a)     = pretty k <+> colon <+> pretty a
 
 instance Pretty Variation where
-    pretty Dim = pretty "o"
-    pretty Aug = pretty "+"
-    pretty (Snd k) = pretty "/" <> pretty k
-    pretty (Add i) = pretty "a"<> pretty i
-    pretty (Sub i) = pretty "no" <> pretty i
-    pretty (Inv i) = pretty "i" <> pretty i
+    pretty Dim         = pretty "o"
+    pretty Aug         = pretty "+"
+    pretty (Snd k)     = pretty "/" <> pretty k
+    pretty (Inv i)     = pretty "i" <> pretty i
+    pretty (Adj i acc) = pretty "adj" <> accidental acc <> pretty i
+    pretty (Add i)     = pretty "a"<> pretty i
+    pretty (Sub i)     = pretty "no" <> pretty i
 
 instance {-# OVERLAPS #-} Pretty Note where
     pretty ((d, a), o) = (pretty . show) (fromEnum d + 1) <> accidental a <> delimit (pretty o)

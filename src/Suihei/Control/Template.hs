@@ -1,27 +1,30 @@
 {-# LANGUAGE PatternSynonyms #-}
 
 module Suihei.Control.Template (
-    label, 
-    pattern MinorSeventh, pattern MajorSeventh, 
-    pattern FullDiminished, pattern HalfDiminished, 
-    pattern DominantSeventh,
-    pattern AugmentedTriad, pattern DiminishedTriad, 
-    pattern MinorTriad, pattern MajorTriad,
-    pattern Fifth, pattern Tritone, 
-    pattern MinorThird, pattern MajorThird, 
-    pattern Atom
+    label
 ) where
 
 import Suihei.Control.Prelude (
-    Semitonal (pitchClassOf), 
-    occurrences)
-import Suihei.Data.Chromatic (Semitone)
-import Suihei.Data.Composition (Music, Progression)
+    Semitonal (pitchClassOf),
+    occurrences, rotatedBy)
+import Suihei.Control.Reification (reify)
+import Suihei.Data.Chromatic (Semitone, flat)
+import Suihei.Data.Chordal (
+    Mode (..),
+    Analysis, pattern Analysis,
+    Variation (..),
+    pattern Dim, pattern Aug)
+import Suihei.Data.Composition (
+    Total (duration),
+    pattern Unit,
+    Music, Progression,
+    foldM)
 import Suihei.Data.Modular (toMod)
 
 import Data.Bifunctor (first)
-import Data.List.Extra (elemIndex)
-import Data.Maybe (fromMaybe, fromJust)
+import Data.List (elemIndex, find, nub)
+import Data.Maybe (fromMaybe, fromJust, catMaybes, mapMaybe)
+import Data.Tuple (swap)
 
 type Template = [Semitone]
 
@@ -32,16 +35,59 @@ type Vector = [(Semitone, Weight)]
 
 type Root = Semitone
 
-label :: Music -> Progression
+-- TODO: Currently, labeling only works relative to 1 (in relative notation) as the tonic.
+-- To fix this issue, either 1) key inference, or 2) manual key input is necessary.
+label :: Music -> (Score, Progression)
 label m =
     let highest = maximum (map (\p -> (score (weight m) p, p)) preference)
+        sc      = fst (fst highest)
         likely  = first snd highest in
-    undefined
+    (sc, Unit (invert (realize likely m) m, duration m))
     where preference = [ MinorSeventh, MajorSeventh, FullDiminished, HalfDiminished, DominantSeventh
                        , AugmentedTriad, DiminishedTriad, MinorTriad, MajorTriad
                        , Fifth, Tritone
                        , MinorThird, MajorThird
                        , Atom ]
+
+-- | Given the original music, and a progression, determines whether the progression should be inverted.
+invert :: Analysis
+       -> Music -- ^ Access to the original musical segment is required to generate the correct accidental.
+       -> Analysis
+invert ana@(Analysis key vs) m = if i == 1 
+                                 then ana
+                                 else Analysis key (Inv i : vs)
+    where notes = nub $ catMaybes (foldM (return . fst) (++) (++) m)
+          lowermost = (snd . minimum . map swap) notes
+          constituents = map fst (mapMaybe fst $ foldM return undefined (++) (reify (Unit (ana, 0))))
+          i = if lowermost `elem` constituents
+              then head [i' | i' <- [1..length constituents], head (constituents `rotatedBy` (i' - 1)) == lowermost]
+              else 1
+invert _ _ = error "Control.Template: Unexpected analysis"
+
+-- | Generates an analysis given a root, the best-fit template, and the original music.
+realize :: (Root, Template)
+        -> Music -- ^ Access to the original musical segment is required to generate the correct accidental.
+        -> Analysis
+realize (r, t) m
+    | MinorSeventh    <- t = Analysis (enh, Min) [Add 7]
+    | MajorSeventh    <- t = Analysis (enh, Maj) [Add 7]
+    | FullDiminished  <- t = Analysis (enh, Min) [Dim, Adj 7 flat, Add 7]
+    | HalfDiminished  <- t = Analysis (enh, Min) [Dim, Add 7]
+    | DominantSeventh <- t = Analysis (enh, Maj) [Adj 7 flat, Add 7]
+    | AugmentedTriad  <- t = Analysis (enh, Maj) [Aug]
+    | DiminishedTriad <- t = Analysis (enh, Min) [Dim]
+    | MajorTriad      <- t = Analysis (enh, Maj) []
+    | MinorTriad      <- t = Analysis (enh, Min) []
+    | Fifth           <- t = Analysis (enh, Maj) [Sub 3]      -- Defaults to major.
+    | Tritone         <- t = Analysis (enh, Min) [Sub 3, Dim] -- Defaults to minor.
+    | MinorThird      <- t = Analysis (enh, Min) [Sub 5]
+    | MajorThird      <- t = Analysis (enh, Maj) [Sub 5]
+    | Atom            <- t = Analysis (enh, Maj) []           -- Defaults to major.
+    | otherwise            = error "Control.Template: Empty template"
+    where -- Collects the most prevalent (i.e. repeating) notes over the original music.
+          enhs = [enh' | (enh', w) <- occurrences m, w == (fst . maximum . map swap) (occurrences m)]
+          -- Then, retrieves the appropriate accidental for the root.
+          enh = fromJust (find (\enh' -> pitchClassOf enh' == r) enhs)
 
 weight :: Music -> Vector
 weight = fill . map (first pitchClassOf) . occurrences
@@ -50,7 +96,7 @@ weight = fill . map (first pitchClassOf) . occurrences
 
 score :: Vector -> Template -> (Score, Root)
 score w t =
-    let ts = take 12 (iterate (map (+ 1)) t)
+    let ts = take 12 (iterate (map succ) t)
         ss = [(score' w t',
                toMod (fromJust (t' `elemIndex` ts)))
              | t' <- ts]

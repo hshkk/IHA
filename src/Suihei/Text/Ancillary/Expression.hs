@@ -6,7 +6,7 @@ module Suihei.Text.Ancillary.Expression (
     parseOperator,
     parseTerm,
     parseInfer,
-    parseValue, parseLiteral, 
+    parseValue, parseLiteral,
     parseKey,
     parseVariable
 ) where
@@ -20,20 +20,20 @@ import Suihei.Data.Chordal (
     Key, Mode (..),
     pattern Analysis,
     Variation (..),
-    pattern Dim, pattern Aug)
+    pattern Dim, pattern Aug, base)
 import Suihei.Data.Notal (Octave, Note)
 import Suihei.Data.Composition (pattern Unit, pattern (:^))
 import Suihei.Data.Temporal (Duration)
 import Suihei.Text.Lexer
 import Suihei.Text.Ancillary.Combinator (
-    (?<|>), returnM, 
-    fromJustDuration, 
-    fromJustOctaviation, 
+    (?<|>), returnM,
+    fromJustDuration,
+    fromJustOctaviation,
     fromJustVariations)
 import Suihei.Text.Ancillary.Monad (
-    Parser, 
+    Parser,
     OpTable)
-import Suihei.Text.Ancillary.State ( 
+import Suihei.Text.Ancillary.State (
     getVariations,  modifyVariations,
     getOctaviation, modifyOctaviation,
     getDuration,    modifyDuration)
@@ -47,7 +47,7 @@ import Text.ParserCombinators.Parsec hiding (Parser)
 import Control.Monad (unless)
 import Data.Char (toLower)
 import Data.List (elemIndex)
-import Data.Maybe (fromJust, isJust, isNothing)
+import Data.Maybe (fromJust, isJust, isNothing, fromMaybe)
 import Data.Ratio ((%))
 
 parseExpression :: Parser Expression
@@ -61,13 +61,14 @@ operatorTable = [ [ ifxl (parseOperator "^"  (:^.))]
     where ifxl op = Infix op AssocLeft
           ifxr op = Infix op AssocRight
 
-parseOperator :: String 
-              -> (Expression -> Expression -> Expression) 
+parseOperator :: String
+              -> (Expression -> Expression -> Expression)
               -> Parser (Expression -> Expression -> Expression)
 parseOperator str op = op <$ reservedOp str
 
 parseTerm :: Parser Expression
 parseTerm = parseInfer
+       ?<|> parseReify
        ?<|> parseValue
        ?<|> parens parseExpression
 
@@ -75,7 +76,15 @@ parseInfer :: Parser Expression
 parseInfer = do
     reserved "infer"
     exp <- parens parseExpression <|> parseVariable
-    return (Infer exp)
+    key <- optionMaybe (reserved "in" >> choice [parens parseKey, parseKey] <* spaces)
+    return (Infer exp (fromMaybe base key))
+
+parseReify :: Parser Expression
+parseReify = do
+    reserved "reify"
+    exp <- parens parseExpression <|> parseVariable
+    key <- optionMaybe (reserved "in" >> choice [parens parseKey, parseKey] <* spaces)
+    return (Reify exp (fromMaybe base key))
 
 parseValue :: Parser Expression
 parseValue = parseLiteral
@@ -103,7 +112,7 @@ parseNote = parseAbsolute ?<|> parseRelative
 parseAbsolute :: Parser Note
 parseAbsolute = do
     name <- oneOf absolutes
-    acc  <- parseAccidentals 
+    acc  <- parseAccidentals
     oct  <- parseAbsoluteNoteSugar <* spaces
        ?<|> parseOctaviationPropagation (returnM =<< nat) <* spaces
     let dia  = fromJust (name `elemIndex` absolutes)
@@ -233,7 +242,7 @@ parseDuration = do
     res <- option Nothing (parseDurationLiteral
                       <|> (parseDurationVariable >>= \dur1  ->
                            parseDots dur1        >>= \dur2 ->
-                           returnM (fromJustDuration dur1 
+                           returnM (fromJustDuration dur1
                                   + fromJustDuration dur2))) <* spaces
     case res of
         -- Returns the sealed duration with no state alteration.

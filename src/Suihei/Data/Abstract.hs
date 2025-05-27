@@ -32,7 +32,8 @@ data Expression = Value Value
                 | Expression :^. Expression
                 | Expression :>| Expression
                 | Expression :|< Expression
-                | Infer Expression
+                | Infer Expression Key
+                | Reify Expression Key
                 deriving Show
 
 infixl 5 :>.
