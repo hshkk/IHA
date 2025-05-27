@@ -7,9 +7,8 @@ module Suihei.Control.Reification (
 
 import Suihei.Control.Prelude (
     octaviate,
-    shift,
     triad,
-    rotatedBy, scale)
+    rotatedBy, scale, Trans (trans))
 import Suihei.Data.Chromatic (Enharmonic, Accidental, diaFrom)
 import Suihei.Data.Chordal (
     Key, base,
@@ -42,7 +41,7 @@ reify p = let -- As progressions can only consist of serial compositions, they c
     where reify' :: TAnalysis -> State Music
           reify' (Analysis key vs, dur) = do
               shifts <- get
-              let key'  = foldl1 shift (key : shifts)
+              let key'  = foldl1 trans (key : shifts)
               let units = map (Unit . (, dur) . Just) (notes key' vs)
               return (foldl1 (:^) units)
           reify' (Shift key ana, dur) = modify (`snoc` key) >> reify' (ana, dur)
@@ -50,8 +49,8 @@ reify p = let -- As progressions can only consist of serial compositions, they c
 -- | Given a key and a set of variations, generates a set of constituent notes.
 notes :: Key -> [Variation] -> [Note]
 notes key []            = octaviate_ (triad key)
-notes key (Snd key':vs) = notes (shift key key') vs
-notes key (Inv i:vs)    = notes key vs `rotatedBy` (i - 1)
+notes key (Snd key':vs) = notes (trans key key') vs
+notes key (Inv i:vs)    = octaviate_ $ map fst (notes key vs `rotatedBy` (i - 1))
 notes key (Adj i acc:vs)
     | Just note <- find (\(enh, _) -> fst enh == diaFrom inKey) result
                  = sortBy comparator ((note `delete` result) `snoc` adjust_ acc inKey)
@@ -73,8 +72,7 @@ comparator = comparing snd <> comparing fst
 
 -- | Given an interval and a key, determines the note of that interval.
 inKey_ :: Int -> Key -> Note
-inKey_ i key = (scale key !! (i - 1), fromIntegral offset + 4)
-    where offset = i `div` 7 -- ^ Computes the number of "wraparounds".
+inKey_ i key = octaviate_ (scale key) !! (i - 1)
 
 -- | Combines the associated accidental of a note with an input accidental.
 adjust_ :: Accidental -> Note -> Note

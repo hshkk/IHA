@@ -23,6 +23,8 @@ import Control.Monad.Trans.State (
     StateT,
     modify, get, execStateT)
 import Data.Maybe (fromJust)
+import Suihei.Control.Reification (reify)
+import Suihei.Control.Prelude (Trans (trans))
 
 type State a = StateT Environment IO a
 
@@ -72,7 +74,7 @@ expression (exp1 :>. exp2) env
     = let m1' = extractM_ (expression exp1 env)
           m2' = extractM_ (expression exp2 env) 
           p1' = extractP_ (expression exp1 env)
-          p2' = extractP_ (expression exp2 env)in
+          p2' = extractP_ (expression exp2 env) in
       case (m1', m2', p1', p2') of
           (Just m1, Just m2, _, _) -> Music (m1 :> m2)
           (_, _, Just p1, Just p2) -> Progression (p1 :> p2)
@@ -89,7 +91,7 @@ expression (exp1 :>| exp2) env
     = let m1' = extractM_ (expression exp1 env)
           m2' = extractM_ (expression exp2 env) 
           p1' = extractP_ (expression exp1 env)
-          p2' = extractP_ (expression exp2 env)in
+          p2' = extractP_ (expression exp2 env) in
       case (m1', m2', p1', p2') of
           (Just m1, Just m2, _, _) ->
               let m3 = fore m2
@@ -105,7 +107,7 @@ expression (exp1 :|< exp2) env
     = let m1' = extractM_ (expression exp1 env)
           m2' = extractM_ (expression exp2 env) 
           p1' = extractP_ (expression exp1 env)
-          p2' = extractP_ (expression exp2 env)in
+          p2' = extractP_ (expression exp2 env) in
       case (m1', m2', p1', p2') of
           (Just m1, Just m2, _, _) ->
               let m3 = aft m1
@@ -120,7 +122,13 @@ expression (exp1 :|< exp2) env
 -- When inferring with aspect to a key, the corresponding (music) expression should be shifted by that key.
 expression (Infer exp key) env = undefined
 
-expression (Reify exp key) env = undefined
+expression (Reify exp key) env
+    = let m' = extractM_ (expression exp env)
+          p' = extractP_ (expression exp env) in
+      case (m', p') of
+          (Just m, _) -> Music (trans m key)
+          (_, Just p) -> Music (trans (reify p) key)
+          _ -> error "Control.Interpreter: Invalid reification"
 
 extractP_ :: Value -> Maybe Progression
 extractP_ (Progression p) = Just p

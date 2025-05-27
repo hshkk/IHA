@@ -1,10 +1,10 @@
 {-# LANGUAGE FlexibleInstances #-}
 
 module Suihei.Control.Prelude (
-    inMode, 
+    inMode,
     Semitonal (..),
     occurrences,
-    shift,
+    Trans (..),
     scale, finite, relative,
     interval, secundal, tertian, quartal,
     triad,
@@ -23,9 +23,12 @@ import Suihei.Data.Modular (toMod, fromMod)
 import Suihei.Data.Chordal (
     Key, Mode (..))
 import Suihei.Data.Notal (Note, Octave)
-import Suihei.Data.Composition (Music, foldM)
+import Suihei.Data.Composition (
+    Composition,
+    Music, foldM)
 
-import Data.Bifunctor (second)
+import Data.Bifunctor (second, first)
+import Suihei.Data.Temporal (Temporal)
 
 inMode :: Diatone -> Mode -> Semitone
 inMode dia Maj = [0, 2, 4, 5, 7, 9, 11] !! fromMod dia
@@ -50,13 +53,31 @@ occurrences = merge . foldM (ins . fst) (++) (++)
                                            Just o  -> (a, o + b) : filter ((/= a) . fst) xs
                                            Nothing -> (a, b) : xs) []
 
-shift :: Key -- ^ Input key
-      -> Key -- ^ Degree of shift
-      -> Key
-shift key key' = let acc = accFrom key' 
-                     enh = second (+ acc) (finite key !! fromMod (diaFrom key'))
-                     mode = snd key 
-                 in (enh, mode)
+class Trans a where
+    trans :: a -> Key -> a
+
+instance Trans Key where
+    trans key key' = let acc = accFrom key'
+                         enh = second (+ acc) (finite key !! fromMod (diaFrom key'))
+                         mode = snd key
+                     in (enh, mode)
+
+instance Trans Note where
+    trans note key = let acc = accFrom key
+                         enh = second (+ acc) (finite (fst note, Maj) !! fromMod (diaFrom key))
+                     in -- If there was a wraparound:
+                        if fromMod (diaFrom note) + fromMod (diaFrom key) > 6
+                        then (enh, snd note + 1)
+                        else (enh, snd note)
+
+instance Trans a => Trans (Maybe a) where
+    trans m key = flip trans key <$> m
+
+instance Trans a => Trans (Temporal a) where
+    trans t key = first (`trans` key) t
+
+instance Trans a => Trans (Composition a) where
+    trans c key = flip trans key <$> c
 
 -- | Computes an infinite list representing an infinite relative scale.
 -- 
@@ -121,9 +142,9 @@ tetrad :: Key -> [Enharmonic]
 tetrad = take 4 . tertian
 
 octaviate :: Octave -> [Enharmonic] -> [Note]
-octaviate oct enhs = 
+octaviate oct enhs =
     zip enhs (scanl (\c (enh, enh') -> if enh' < enh
-                                       then c + 1 
+                                       then c + 1
                                        else c) oct (zip enhs (tail enhs)))
 
 rotatedBy :: [a] -> Int -> [a]
