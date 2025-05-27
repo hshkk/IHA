@@ -14,7 +14,7 @@ module Suihei.Text.Ancillary.Expression (
 import Suihei.Data.Abstract (
     Expression (..),
     Value      (..))
-import Suihei.Data.Chromatic (Accidental, flat)
+import Suihei.Data.Chromatic (Accidental, flat, dflat)
 import Suihei.Data.Modular (toMod)
 import Suihei.Data.Chordal (
     Key, Mode (..),
@@ -49,6 +49,7 @@ import Data.Char (toLower)
 import Data.List (elemIndex)
 import Data.Maybe (fromJust, isJust, isNothing, fromMaybe)
 import Data.Ratio ((%))
+import Data.List.Extra (notNull)
 
 parseExpression :: Parser Expression
 parseExpression = buildExpressionParser operatorTable parseTerm
@@ -220,11 +221,21 @@ parseKey = do
 
 parseVariationSugar :: Parser [Variation]
 parseVariationSugar = do
-    dim <- option [] (char 'o' >> return [Dim])
-    aug <- option [] (char '+' >> return [Aug])
-    sv  <- option [] (char '7' >> return [Adj 7 flat, Add 7])
-    sn  <- option [] (char '/' >> parseKey >>= \key -> return [Snd key])
-    return (dim ++ aug ++ sv ++ sn)
+    dim <- option [] ((char 'o' >> return [Dim]) 
+                  <|> (char '%' >> return [Dim, Adj 7 flat]))
+    aug <- option []  (char '+' >> return [Aug])
+    sv  <- option []  (char '7' >> return [Adj 7 flat, Add 7])
+    sn  <- option []  (char '/' >> parseKey >>= \key -> return [Snd key])
+    if notNull sv 
+    then
+        case dim of
+            [Dim]          -> return (dim ++ [Adj 7 dflat, Add 7] ++ aug ++ sn)
+            [Dim, Adj 7 _] -> return (dim ++ [Add 7] ++ aug ++ sn)
+            _              -> return (dim ++ aug ++ sv ++ sn)
+    else 
+        case dim of
+            [Dim, Adj 7 _] -> error "Text.Ancillary.Expression: Half-diminished without seventh"
+            _ -> return (dim ++ aug ++ sv ++ sn)
 
 parseVariations :: Parser (Maybe [Variation])
 parseVariations = option (Just []) (parseVariationPropagation (Just <$> sepBy1 parseVariation (symbol ",")))
