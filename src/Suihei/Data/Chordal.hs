@@ -6,14 +6,14 @@ module Suihei.Data.Chordal (
     Variation (..),
     pattern Dim, pattern Aug,
     Analysis, pattern Analysis, pattern Shift,
-    TAnalysis
+    TAnalysis, IAnalysis (..)
 ) where
 
 import Suihei.Data.Chromatic (Accidental, Chromatic)
 import Suihei.Data.Temporal (Temporal)
 
 import Control.Exception (assert)
-import Data.Function (on, (&))
+import Data.Function ((&))
 import Data.List (nub, sort)
 
 data Mode = Maj | Min deriving (Eq, Ord)
@@ -85,3 +85,5 @@ pattern Analysis key vars  <- A_ key vars
     where Analysis key vars = A_ key (verify vars)
 
 type TAnalysis = Temporal Analysis
+
+newtype IAnalysis = Ia TAnalysis

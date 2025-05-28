@@ -9,13 +9,13 @@ import Suihei.Data.Chromatic (Diatone, diatones, Accidental)
 import Suihei.Data.Chordal (
     Key, Mode (..),
     Analysis  (..), pattern Analysis,
-    Variation (..), 
+    Variation (..),
     pattern Dim, pattern Aug,
-    TAnalysis)
-import Suihei.Data.Notal (Note, pattern Rest, TNote)
+    TAnalysis, IAnalysis (Ia))
+import Suihei.Data.Notal (Note, pattern Rest, TNote, INote (..))
 import Suihei.Data.Composition (
     pattern Unit, pattern (:>), pattern (:^),
-    Progression, Music)
+    Progression, Music, Composition)
 import Suihei.Data.Temporal (Duration, Temporal)
 
 import Prettyprinter
@@ -46,6 +46,17 @@ instance Pretty Analysis where
                   | otherwise = pretty "|" <> (hsep . punctuate comma) docs <> pretty "|"
     pretty (Shift k a)     = pretty k <+> colon <+> pretty a
 
+instance Pretty IAnalysis where
+    pretty (Ia (Analysis k vs, dur)) = format k <> delimit (map pretty vs) <+> pretty dur
+        where format ((d, a), m) = pretty (names !! fromEnum d) 
+                                <> accidental a 
+                                <> (if m == Maj then emptyDoc else pretty "m") 
+              names = "CDEFGAB"
+              delimit docs
+                  | null docs = emptyDoc
+                  | otherwise = pretty "|" <> (hsep . punctuate comma) docs <> pretty "|"
+    pretty (Ia (Shift k a, dur)) = pretty k <+> colon <+> pretty (Ia (a, dur))
+
 instance Pretty Variation where
     pretty Dim         = pretty "o"
     pretty Aug         = pretty "+"
@@ -58,6 +69,11 @@ instance Pretty Variation where
 instance {-# OVERLAPS #-} Pretty Note where
     pretty ((d, a), o) = (pretty . show) (fromEnum d + 1) <> accidental a <> delimit (pretty o)
         where delimit doc = pretty "|" <> doc <> pretty "|"
+
+instance {-# OVERLAPS #-} Pretty INote where
+    pretty (In (Nothing, dur))          = pretty "*" <+> pretty dur
+    pretty (In (Just ((d, a), o), dur)) = pretty (names !! fromEnum d) <> accidental a <> pretty o <+> pretty dur
+        where names = "CDEFGAB"
 
 data Numeral_ = I | II | III | IV
               | V | VI | VII deriving (Enum, Show)
@@ -78,9 +94,22 @@ instance Pretty Progression where
     pretty (Unit a) = pretty a
     pretty (p1 :> p2) = pretty p1 <+> pretty ">" <+> pretty p2
 
+instance Pretty (Composition IAnalysis) where
+    pretty (Unit a) = pretty a
+    pretty (p1 :> p2) = pretty p1 <+> pretty ">" <+> pretty p2
+
 instance Pretty Music where
     pretty (Unit n)
         | (Rest, d) <- n = pretty "*" <+> pretty d
+        | otherwise      = pretty n
+    pretty (m1 :> m2) = pretty m1 <+> pretty ">" <+> pretty m2
+    pretty (m1 :^ m2)
+        | (_ :> _) <- m2 = pretty m1 <+> pretty "^" <+> (parens . pretty) m2
+        | otherwise      = pretty m1 <+> pretty "^" <+> pretty m2
+
+instance Pretty (Composition INote) where
+    pretty (Unit n)
+        | (In (Rest, d)) <- n = pretty "*" <+> pretty d
         | otherwise      = pretty n
     pretty (m1 :> m2) = pretty m1 <+> pretty ">" <+> pretty m2
     pretty (m1 :^ m2)
@@ -116,5 +145,11 @@ instance {-# OVERLAPS #-} Show TNote where
 instance Show Progression where
     show = show . pretty
 
+instance Show (Composition IAnalysis) where
+    show = show . pretty
+
 instance Show Music where
+    show = show . pretty
+
+instance Show (Composition INote) where
     show = show . pretty

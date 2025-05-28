@@ -12,11 +12,11 @@ import Suihei.Data.Abstract (
     Effect     (..))
 
 import Suihei.Control.Compiler (cout)
-import Suihei.Data.Chordal (Analysis (Shift))
+import Suihei.Data.Chordal (Analysis (Shift), IAnalysis (Ia))
 import Suihei.Data.Composition (
     fore, aft,
     Total (duration), Take (takenFrom, droppedFrom),
-    pattern Unit, pattern (:>), pattern (:^), trim, Music, Progression)
+    pattern Unit, pattern (:>), pattern (:^), trim, Music, Progression, foldM)
 
 import Control.Monad.Trans.Class (MonadTrans (lift))
 import Control.Monad.Trans.State (
@@ -25,6 +25,7 @@ import Control.Monad.Trans.State (
 import Data.Maybe (fromJust)
 import Suihei.Control.Reification (reify)
 import Suihei.Control.Prelude (Trans (trans))
+import Suihei.Data.Notal (INote(..))
 
 type State a = StateT Environment IO a
 
@@ -44,12 +45,11 @@ effect :: Effect -> Environment -> IO ()
 effect (Out exp Nothing) env =
     let val = expression exp env in
     print val
--- TODO: Transposition
 effect (Out exp (Just key)) env =
     let val = expression exp env in
     case val of
-        Music m       -> print val
-        Progression p -> print val
+        Music m       -> print (fmap In (trans m key))
+        Progression p -> print (fmap Ia (trans p key))
 effect (Lily exp key file) env =
     let val = expression exp env in
     cout val key file

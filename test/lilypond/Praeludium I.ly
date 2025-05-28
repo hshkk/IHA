@@ -1,4 +1,4 @@
-% The first six measures of Praeludium I (BWV 846) from Das Wohltemperirte Clavier I by Johann Sebastian Bach (1685-1750).
+% mm. 1-6 of Praeludium I (BWV 846) from Das Wohltemperirte Clavier I by Johann Sebastian Bach (1685-1750).
 
 \version "2.24.4"
 

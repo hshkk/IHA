@@ -11,8 +11,8 @@ module Suihei.Data.Composition (
     fore, aft, count, trim,
 ) where
 
-import Suihei.Data.Chordal (Analysis, TAnalysis)
-import Suihei.Data.Notal (Note, TNote, pattern Rest)
+import Suihei.Data.Chordal (Analysis, TAnalysis, IAnalysis)
+import Suihei.Data.Notal (Note, TNote, pattern Rest, INote)
 import Suihei.Data.Temporal (Duration, Temporal)
 
 data Composition a
@@ -37,11 +37,16 @@ instance Serial Analysis
 
 instance Serial TAnalysis
 
+instance Serial IAnalysis
+
 instance Serial Note
 instance Parallel Note
 
 instance Serial TNote
 instance Parallel TNote
+
+instance Serial INote
+instance Parallel INote
 
 pattern Unit :: a -> Composition a
 pattern Unit a = U_ a

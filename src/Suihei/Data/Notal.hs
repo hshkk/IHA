@@ -3,7 +3,7 @@
 module Suihei.Data.Notal (
     Octave, 
     Note, pattern Rest,
-    TNote
+    TNote, INote (..)
 ) where
 
 import Suihei.Data.Chromatic (Chromatic)
@@ -18,3 +18,4 @@ pattern Rest :: Maybe Note
 pattern Rest = Nothing
 
 type TNote = Temporal (Maybe Note)
+newtype INote = In TNote

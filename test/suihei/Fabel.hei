@@ -12,7 +12,7 @@ Schnell  = (*  s > C3 > [ A  D4 ] > C3 > *         > C  > [ G   D4  ] > C3
          >  *    > C3 > [ A  D4 ] > C3 > *         > C  > [ G   D4  ] > C3
          >  *    > C3 > [ G  C4 ] > C3 > *         > E  > [ Bb  G#4 ] e
          >  *  s > F3 > [ A  F4 ] > F3 > *         > G  > [ B   D4  ] > G3
-         >  *    > C  > [ G  C4 ] > C3 > [ A C4 ]  > C3 > [ G   C4  ] > C3  )
+         >  *    > C  > [ G  C4 ] > C3 > [ A C4  ] > C3 > [ G   C4  ] > C3  )
          ^ (D5 s > [ F4 A  ] > *  > [ F  A  ] > B  > [ F  G  ] > * > [ F G ]
          >  C5   > [ E4 G  ] > *  > [ E  G  ] > G# > [ D  E  ] > * > [ D E ]
          >  A    > [ C  E  ] > *  > [ C  E  ] > F# > [ C  D  ] > * > [ C D ]
@@ -23,9 +23,9 @@ Schnell  = (*  s > C3 > [ A  D4 ] > C3 > *         > C  > [ G   D4  ] > C3
          >  C5   > [ E4 G  ] > C5 > [ F4 A  ] > C5 > [ E4 G  ] > * e )
 
 Langsam' = ([ G2 B3 ] h                  > [ C3 C4 ]                        
-         >  ( D3 h > G w > C h)          ^ (F#4 q > D h > E e > F#  >  A q  > F# > E > Eb) 
+         >  ( D3 h > G w > C h)          ^ (F#4 q > D h > E e  > F# >  A q  > F# > E > Eb) 
          >  ( D3 > D4) ^ (D4 > F#)       > G3 h ^ D4)
-         ^  ( G4 h     ^ (D5 q > D#)     > [ G4 A ] h ^ (E5 e > F#  >  G    > A) 
+         ^  ( G4    h  ^ (D5 q > D#)     > [ G4 A ] h ^ (E5 e  > F# >  G    > A) 
          >  [ C D ] h  ^ (B q > A)       > B4 h ^ (G5 q > F# e > E) > (B4 q > A) ^ (D5 > D#)
          >    G4 h ^ (E5 e > F# > G > A) > [ C D ] h  ^ (B q > A)   >  B4 h ^ G5 h)
 

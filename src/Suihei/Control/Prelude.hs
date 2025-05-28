@@ -1,4 +1,5 @@
 {-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE PatternSynonyms #-}
 
 module Suihei.Control.Prelude (
     inMode,
@@ -21,7 +22,7 @@ import Suihei.Data.Chromatic (
     accFrom, diaFrom)
 import Suihei.Data.Modular (toMod, fromMod)
 import Suihei.Data.Chordal (
-    Key, Mode (..))
+    Key, Mode (..), Analysis (Shift), pattern Analysis)
 import Suihei.Data.Notal (Note, Octave)
 import Suihei.Data.Composition (
     Composition,
@@ -61,6 +62,11 @@ instance Trans Key where
                          enh = second (+ acc) (finite key !! fromMod (diaFrom key'))
                          mode = snd key
                      in (enh, mode)
+
+instance Trans Analysis where
+    trans (Analysis key vs) key' = Analysis (fst res, snd key) vs
+        where res = trans (fst key, Maj) key'
+    trans (Shift key ana) key'   = Shift key (trans ana key')
 
 instance Trans Note where
     trans note key = let acc = accFrom key
