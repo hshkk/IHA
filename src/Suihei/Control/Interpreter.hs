@@ -12,20 +12,20 @@ import Suihei.Data.Abstract (
     Effect     (..))
 
 import Suihei.Control.Compiler (cout)
+import Suihei.Control.Prelude (Trans (trans))
+import Suihei.Control.Reification (reify)
 import Suihei.Data.Chordal (Analysis (Shift), IAnalysis (Ia))
+import Suihei.Data.Notal (INote(..))
 import Suihei.Data.Composition (
     fore, aft,
     Total (duration), Take (takenFrom, droppedFrom),
-    pattern Unit, pattern (:>), pattern (:^), trim, Music, Progression, foldM)
+    pattern Unit, pattern (:>), pattern (:^), trim, Music, Progression)
 
 import Control.Monad.Trans.Class (MonadTrans (lift))
 import Control.Monad.Trans.State (
     StateT,
     modify, get, execStateT)
 import Data.Maybe (fromJust)
-import Suihei.Control.Reification (reify)
-import Suihei.Control.Prelude (Trans (trans))
-import Suihei.Data.Notal (INote(..))
 
 type State a = StateT Environment IO a
 
@@ -42,14 +42,17 @@ statement (Eff eff) = do
     lift (effect eff env)
 
 effect :: Effect -> Environment -> IO ()
+-- If no key is provided, then the associated value is printed in relative notation.
 effect (Out exp Nothing) env =
     let val = expression exp env in
     print val
 effect (Out exp (Just key)) env =
     let val = expression exp env in
     case val of
-        Music m       -> print (fmap In (trans m key))
-        Progression p -> print (fmap Ia (trans p key))
+        -- Converts Music/Progression values so that they can be run through a different pretty-printer.
+        -- In a future iteration, this system should be rewritten.
+        Music m       -> print (In <$> trans m key)
+        Progression p -> print (Ia <$> trans p key)
 effect (Lily exp key file) env =
     let val = expression exp env in
     cout val key file

@@ -85,5 +85,6 @@ pattern Analysis key vars  <- A_ key vars
     where Analysis key vars = A_ key (verify vars)
 
 type TAnalysis = Temporal Analysis
-
+-- | @IAnalysis@ only exists to pretty-print analyses using absolute names.
+-- In a future iteration, this system should be rewritten.
 newtype IAnalysis = Ia TAnalysis

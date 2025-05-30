@@ -1,6 +1,7 @@
 {-# LANGUAGE DefaultSignatures #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE PatternSynonyms #-}
+{-# LANGUAGE InstanceSigs #-}
 
 module Suihei.Control.Compiler (Compile (..)) where
 
@@ -13,7 +14,7 @@ import Suihei.Data.Chordal (Key, Mode (..))
 import Suihei.Data.Notal (Octave, Note, pattern Rest)
 import Suihei.Data.Composition (
     fore, duration,
-    Music,
+    Progression, Music,
     pattern Unit, pattern (:>), pattern (:^))
 import Suihei.Data.Temporal (Duration)
 
@@ -64,17 +65,13 @@ instance Compile Music where
     compile m key = fixed_ key (compile' m)
         where compile' :: Music -> Doc ann
               compile' (Unit (note, dur))
-                  | Rest            <- note = 
-                      pretty "r" 
-                   <> format dur
-                  | Just (enh, oct) <- note = 
-                      format (enh, oct) 
-                   <> format dur
+                  | Rest            <- note = format ("r", dur)
+                  | Just (enh, oct) <- note = format (show . format $ (enh, oct), dur)
               compile' (m1 :> m2) = compile' m1 <+> compile' m2
               compile' (m1 :^ m2)
                   | Just ms <- chord_ (m1 :^ m2) = 
-                      angles_ (concatWith (<+>) (map (format . note_) ms))
-                   <> format (duration (head ms))
+                      format (show $ angles_ (concatWith (<+>) (map (format . note_) ms)), 
+                              duration (head ms))
                   | otherwise =
                       let m1' = if octaviation_ (fore m1) < octaviation_ (fore m2)
                                 then m2
@@ -87,6 +84,10 @@ instance Compile Music where
                             <+> braces (command_ "voiceTwo" <+> compile' m2'))
                             <>  line
               compile' _ = undefined
+
+type Annotated = (Progression, Music)
+
+instance Compile Annotated where
 
 -- | Rewrites chords as a list of units.
 -- Chords are defined here as parallel compositions with no serial compositions, with all constituents having the same duration.
@@ -139,24 +140,37 @@ instance Format_ Octave where
         | oct' > 4  = squote <> format (oct' - 1)
         | otherwise = emptyDoc
 
-instance Format_ Duration where
-    format dur
+-- Here, the pretty-printed note must be passsed in due to the tuplet syntax.
+instance Format_ (String, Duration) where
+    format (doc, dur)
+        -- If the duration is greater than a whole note, create a tie
+        | dur > 1 = pretty doc <> pretty "1~" <+> format ("", dur - 1)
+        -- If the duration is one of 1/1, 1/2, 1/4, ..., 1/1024
         | numerator dur == 1
-       && dur `elem` durs = pretty (denominator dur)
-        -- Augmentation dots
-        | Just (dur', dots') <- dots = pretty (denominator dur')
+       && dur `elem` durs = pretty doc <> pretty (denominator dur)
+        -- If augmentation dots apply
+        | Just (dur', dots') <- dots = pretty doc
+                                    <> pretty (denominator dur')
                                     <> hcat (replicate dots' dot)
-        | otherwise = error "Control.Lily.Compiler: Invalid duration"
-        where series :: [Int]
+        | otherwise = command_ "tuplet" 
+                  <+> pretty (fst $ tuplet dur) 
+                  <+> braces (pretty doc <> format ("", snd $ tuplet dur))
+        where -- Retrieves only the powers of two from 1-1024.
+              series :: [Int]
               series = filter (\n -> n .&. (n - 1) == 0) [1..1024]
               durs :: [Duration]
               durs = map (1 %) series
+              -- Determines 1) whether augmentation dots apply, 2) the number of augmentation dots.
               dots :: Maybe (Duration, Int)
               dots = let near   = maximum (filter (<= dur) durs)
                          dotted = scanl1 (+) [near * n | n <- durs] in
                          if dur `elem` dotted
                          then Just (near, fromJust $ dur `elemIndex` dotted)
                          else Nothing
+              -- Determines the appropriate tuplet for an arbitrary duration, also returning the closest duration to said duration.
+              tuplet :: Duration -> (Duration, Duration)
+              tuplet dur' = let near = maximum (filter (<= dur') durs) in
+                            ((denominator dur' % numerator dur') * near, near)
 
 llangle_ :: Doc ann
 llangle_ = langle <> langle
