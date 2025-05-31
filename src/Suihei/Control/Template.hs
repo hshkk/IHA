@@ -8,7 +8,7 @@ import Suihei.Control.Prelude (
     Semitonal (pitchClassOf),
     occurrences, rotatedBy, scale)
 import Suihei.Control.Reification (reify)
-import Suihei.Data.Chromatic (Semitone, flat, Accidental)
+import Suihei.Data.Chromatic (Semitone, flat)
 import Suihei.Data.Chordal (
     Mode (..),
     Analysis, pattern Analysis,
@@ -26,8 +26,6 @@ import Data.List (elemIndex, find, nub, sortBy)
 import Data.Maybe (fromMaybe, fromJust, catMaybes, mapMaybe, isNothing)
 import Data.Tuple (swap)
 
-import Suihei.Text.Prettyprinter ()
-import Debug.Trace (trace)
 import Data.Ord (comparing)
 
 type Template = [Semitone]

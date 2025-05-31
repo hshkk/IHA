@@ -1,4 +1,5 @@
 {-# LANGUAGE PatternSynonyms #-}
+{-# OPTIONS_GHC -Wno-incomplete-uni-patterns #-}
 
 module Suihei.Control.Interpreter (
     interpret
@@ -27,6 +28,8 @@ import Control.Monad.Trans.State (
     modify, get, execStateT)
 import Data.Maybe (fromJust)
 import Suihei.Control.Inference (infer)
+
+import Prelude hiding (exp)
 
 type State a = StateT Environment IO a
 

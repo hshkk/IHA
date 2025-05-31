@@ -17,13 +17,15 @@ import Suihei.Text.Ancillary.Monad (Parser)
 
 import Text.ParserCombinators.Parsec hiding (Parser)
 
-parseEffect :: String                -- ^ Function name
-           -> (Expression -> Effect) -- ^ Effect constructor
-           -> Parser Effect
-parseEffect fun eff = do
-    reserved fun
-    exp <- parens parseExpression <|> parseVariable
-    return (eff exp)
+import Prelude hiding (exp)
+
+--parseEffect :: String                -- ^ Function name
+--           -> (Expression -> Effect) -- ^ Effect constructor
+--           -> Parser Effect
+--parseEffect fun eff = do
+--    reserved fun
+--    exp <- parens parseExpression <|> parseVariable
+--    return (eff exp)
 
 parseEffectIn :: String                              -- ^ Function name
               -> (Expression -> Maybe Key -> Effect) -- ^ Effect constructor

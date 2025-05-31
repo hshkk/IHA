@@ -17,6 +17,8 @@ import Suihei.Text.Ancillary.Monad (Parser)
 
 import Text.ParserCombinators.Parsec (choice)
 
+import Prelude hiding (exp)
+
 parseStatement :: Parser Statement
 parseStatement = parseEffect ?<|> parseDefinition
     where parseEffect = choice [parseOut, parseLily, parseAnno]

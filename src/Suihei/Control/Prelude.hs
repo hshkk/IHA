@@ -103,7 +103,7 @@ scale (enh, mode)
           in cycle (zip intervals accidentals)
       where -- Computes the actual pitch class of a note, given the root.
             actual :: Semitone -> Mode -> Diatone -> Semitone
-            actual root mode dia = root + (dia `inMode` mode)
+            actual root mode' dia = root + (dia `inMode` mode')
             -- Computes the pitch class deviation of s with respect to the "reference" pitch class d.
             deviation :: Diatone -> Semitone -> Accidental
             deviation dia semi =

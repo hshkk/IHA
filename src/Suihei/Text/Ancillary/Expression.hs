@@ -40,7 +40,7 @@ import Suihei.Text.Ancillary.State (
 
 import Text.Parsec (string', parserZero)
 import Text.Parsec.Expr (
-    Operator (Infix), Assoc (AssocLeft, AssocRight),
+    Operator (Infix), Assoc (AssocLeft),
     buildExpressionParser)
 import Text.ParserCombinators.Parsec hiding (Parser)
 
@@ -50,6 +50,7 @@ import Data.List (elemIndex, foldl1')
 import Data.Maybe (fromJust, isJust, isNothing, fromMaybe)
 import Data.Ratio ((%))
 import Data.List.Extra (notNull)
+import Prelude hiding (exp)
 
 parseExpression :: Parser Expression
 parseExpression = buildExpressionParser operatorTable parseTerm
@@ -60,7 +61,7 @@ operatorTable = [ [ ifxl (parseOperator "^"  (:^.))]
                   , ifxl (parseOperator "|<" (:|<))
                   , ifxl (parseOperator ">"  (:>.)) ] ]
     where ifxl op = Infix op AssocLeft
-          ifxr op = Infix op AssocRight
+       -- ifxr op = Infix op AssocRight
 
 parseOperator :: String
               -> (Expression -> Expression -> Expression)

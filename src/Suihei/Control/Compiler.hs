@@ -3,6 +3,9 @@
 {-# LANGUAGE PatternSynonyms #-}
 {-# LANGUAGE InstanceSigs #-}
 
+{-# OPTIONS_GHC -Wno-incomplete-uni-patterns #-}
+{-# OPTIONS_GHC -Wno-incomplete-patterns #-}
+
 module Suihei.Control.Compiler (Compile (..)) where
 
 import Suihei.Control.Prelude (relative)
@@ -88,6 +91,7 @@ instance Compile Music where
 type Annotated = (Progression, Music)
 
 instance Compile Annotated where
+    compile = undefined
 
 -- | Rewrites chords as a list of units.
 -- Chords are defined here as parallel compositions with no serial compositions, with all constituents having the same duration.
