@@ -1,58 +1,40 @@
 {-# LANGUAGE PatternSynonyms #-}
 
 module Suihei.Control.Demarcation (
-    demarcate
+    demarcate,
+    partition
 ) where
 
-import Suihei.Control.Prelude (
-    occurrences,
-    triad)
-import Suihei.Data.Chromatic (Enharmonic)
-import Suihei.Data.Chordal (Mode (Maj, Min))
-import Suihei.Data.Notal (Octave, Note)
 import Suihei.Data.Composition (
     pattern Unit, pattern (:>), pattern (:^),
     Music, foldM,
     Total (duration),
-    Take  (takenFrom, droppedFrom),
-    fore, aft)
-import Suihei.Data.Temporal (Duration)
-import Suihei.Data.Probability (Probability)
+    Take  (takenFrom, droppedFrom))
+import Suihei.Text.Prettyprinter ()
 
-import Data.List.Extra (uncons, unsnoc)
+import Data.List.Extra (uncons, unsnoc, foldl')
+import Suihei.Control.Template (label)
 
 type Demarcation a = [a]
 
--- | Retrieves the first element from the first composition within a demarcation.
-initial :: Demarcation Music -> Maybe Music
-initial d = fore . fst <$> uncons d
-
--- | Retrieves the last element from the last composition within a demarcation.
-terminal :: Demarcation Music -> Maybe Music
-terminal d = aft . snd <$> unsnoc d
-
-durationOver :: Demarcation Music -> Duration
-durationOver = foldr ((+) . duration) 0
-
-occurrencesOver :: Demarcation Music -> [(Enharmonic, Int)]
-occurrencesOver = concatMap occurrences 
-
 -- | Demarcates (i.e. segments) music into harmonically "significant" partitions.
 demarcate :: Music -> Demarcation Music
-demarcate = foldM (\m -> [Unit m])
-                  (/+/)
-                  (unmarcate (:^)) . partition
+demarcate m = let mins :: Demarcation Music -- Partitions music so as to remove nested serial compositions.
+                  mins = foldM (return . Unit) (++) (unmarcate (:^)) (partition m)
+              in foldl' (/+/) [Unit (Nothing, 0)] mins
     where -- Unmarcates or constructs a demarcation by concatenation.
           -- (++) is equivalent to the most eager demarcation algorithm: every serial composition is rewritten as a demarcation.
           -- @unmarcate@ is equivalent to the most hesitant demarcation algorithm: every serial composition remains intact.
-          (/+/) :: Demarcation Music -> Demarcation Music -> Demarcation Music
-          d1 /+/ d2
-              -- Due to pre-partitioning, m1 and m2 will have no serial compositions.
-              | Just m1 <- terminal d1
-              , Just m2 <- initial d2 =
-                  if undefined
-                  then d1 ++ d2
-                  else unmarcate (:>) d1 d2
+          (/+/) :: Demarcation Music -> Music -> Demarcation Music
+          d1 /+/ m2
+              -- Due to pre-partitioning, m1 (the last demarcation) will have no serial compositions.
+              | Just (_, m1) <- unsnoc d1 =
+                  let s12 = fst $! label (m1 :> m2)
+                      s1  = fst $! label m1
+                      s2  = fst $! label m2 in
+                  if s12 >= s1 + s2            -- Determines which score matches stronger to a template.
+                  then unmarcate (:>) d1 [m2]  -- Merges if the score of m1 :> m2 is greater.
+                  else d1 ++ [m2]              -- Creates a demarcation if the score of m2 is greater.
               | otherwise = []
           infix 8 /+/
 

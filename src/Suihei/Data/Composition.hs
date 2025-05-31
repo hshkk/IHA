@@ -16,9 +16,10 @@ import Suihei.Data.Notal (Note, TNote, pattern Rest, INote)
 import Suihei.Data.Temporal (Duration, Temporal)
 
 data Composition a
-    = U_ a
-    | S_ (Composition a) (Composition a)
-    | P_ (Composition a) (Composition a)
+    = U_ !a
+    | S_ !(Composition a) !(Composition a)
+    | P_ !(Composition a) !(Composition a)
+    deriving Eq
 
 instance Functor Composition where
     fmap f (U_ x) = U_ (f x)
@@ -26,9 +27,9 @@ instance Functor Composition where
     fmap f (P_ x1 x2) = P_ (fmap f x1) (fmap f x2)
 
 foldC :: (a -> b) -> (b -> b -> b) -> (b -> b -> b) -> Composition a -> b
-foldC f _ _ (U_ x)     = f x
-foldC f g h (S_ x1 x2) = foldC f g h x1 `g` foldC f g h x2
-foldC f g h (P_ x1 x2) = foldC f g h x1 `h` foldC f g h x2
+foldC f _ _ (U_ x)     = f $! x
+foldC f g h (S_ x1 x2) = g (foldC f g h x1) $! foldC f g h x2
+foldC f g h (P_ x1 x2) = h (foldC f g h x1) $! foldC f g h x2
 
 class Serial a
 class Parallel a

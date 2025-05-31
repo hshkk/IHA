@@ -6,14 +6,14 @@ module Suihei.Control.Template (
 
 import Suihei.Control.Prelude (
     Semitonal (pitchClassOf),
-    occurrences, rotatedBy)
+    occurrences, rotatedBy, scale)
 import Suihei.Control.Reification (reify)
-import Suihei.Data.Chromatic (Semitone, flat)
+import Suihei.Data.Chromatic (Semitone, flat, Accidental)
 import Suihei.Data.Chordal (
     Mode (..),
     Analysis, pattern Analysis,
     Variation (..),
-    pattern Dim, pattern Aug)
+    pattern Dim, pattern Aug, base)
 import Suihei.Data.Composition (
     Total (duration),
     pattern Unit,
@@ -22,9 +22,13 @@ import Suihei.Data.Composition (
 import Suihei.Data.Modular (toMod)
 
 import Data.Bifunctor (first)
-import Data.List (elemIndex, find, nub)
-import Data.Maybe (fromMaybe, fromJust, catMaybes, mapMaybe)
+import Data.List (elemIndex, find, nub, sortBy)
+import Data.Maybe (fromMaybe, fromJust, catMaybes, mapMaybe, isNothing)
 import Data.Tuple (swap)
+
+import Suihei.Text.Prettyprinter ()
+import Debug.Trace (trace)
+import Data.Ord (comparing)
 
 type Template = [Semitone]
 
@@ -38,16 +42,19 @@ type Root = Semitone
 -- TODO: Currently, labeling only works relative to 1 (in relative notation) as the tonic.
 -- To fix this issue, either 1) key inference, or 2) manual key input is necessary.
 label :: Music -> (Score, Progression)
-label m =
-    let highest = maximum (map (\p -> (score (weight m) p, p)) preference)
-        sc      = fst (fst highest)
-        likely  = first snd highest in
-    (sc, Unit (invert (realize likely m) m, duration m))
+label m = if rests m
+          then (minBound, Unit (Analysis base [], 0))
+          else
+            let highest = maximum (map (\p -> (score (weight m) p, p)) preference)
+                sc      = fst (fst highest)
+                likely  = first snd highest in
+            (sc, Unit (invert (realize likely m) m, duration m))
     where preference = [ MinorSeventh, MajorSeventh, FullDiminished, HalfDiminished, DominantSeventh
                        , AugmentedTriad, DiminishedTriad, MinorTriad, MajorTriad
                        , Fifth, Tritone
                        , MinorThird, MajorThird
                        , Atom ]
+          rests = foldM (isNothing . fst) (&&) (&&)
 
 -- | Given the original music, and a progression, determines whether the progression should be inverted.
 invert :: Analysis
@@ -85,9 +92,10 @@ realize (r, t) m
     | Atom            <- t = Analysis (enh, Maj) []           -- Defaults to major.
     | otherwise            = error "Control.Template: Empty template"
     where -- Collects the most prevalent (i.e. repeating) notes over the original music.
-          enhs = [enh' | (enh', w) <- occurrences m, w == (fst . maximum . map swap) (occurrences m)]
+          enhs = [enh' | (enh', w) <- sortBy (comparing snd <> comparing fst) $ occurrences m
+                       , w == (fst . maximum . map swap) (occurrences m)]
           -- Then, retrieves the appropriate accidental for the root.
-          enh = fromJust (find (\enh' -> pitchClassOf enh' == r) enhs)
+          enh = fromMaybe (head . scale $ (head enhs, Maj)) (find (\enh' -> pitchClassOf enh' == r) enhs)
 
 weight :: Music -> Vector
 weight = fill . map (first pitchClassOf) . occurrences

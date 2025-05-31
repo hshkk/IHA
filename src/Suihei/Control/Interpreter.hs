@@ -26,6 +26,7 @@ import Control.Monad.Trans.State (
     StateT,
     modify, get, execStateT)
 import Data.Maybe (fromJust)
+import Suihei.Control.Inference (infer)
 
 type State a = StateT Environment IO a
 
@@ -45,7 +46,9 @@ effect :: Effect -> Environment -> IO ()
 -- If no key is provided, then the associated value is printed in relative notation.
 effect (Out exp Nothing) env =
     let val = expression exp env in
-    print val
+    case val of
+        Music m       -> print m
+        Progression p -> print p
 effect (Out exp (Just key)) env =
     let val = expression exp env in
     case val of
@@ -123,7 +126,13 @@ expression (exp1 :|< exp2) env
           _ -> error "Control.Interpreter: Invalid serial composition"
 
 -- When inferring with aspect to a key, the corresponding (music) expression should be shifted by that key.
-expression (Infer exp key) env = undefined
+expression (Infer exp key) env
+    = let m' = extractM_ (expression exp env)
+          p' = extractP_ (expression exp env) in
+      case (m', p') of
+          (Just m, _) -> Progression (infer m key)
+          (_, Just p) -> Progression (trans p key)
+          _ -> error "Control.Interpreter: Invalid inference"
 
 expression (Reify exp key) env
     = let m' = extractM_ (expression exp env)

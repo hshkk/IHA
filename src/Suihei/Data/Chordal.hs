@@ -76,6 +76,7 @@ verify vars = let vars' = sort (nub vars) in
 --
 -- For example, @viio7@ would be encoded as @(7, L, {Dim, Add 7})@.
 data Analysis = A_ Key [Variation] | Shift Key Analysis
+    deriving Eq
 
 {-# COMPLETE Analysis, Shift #-}
 

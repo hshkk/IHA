@@ -46,7 +46,7 @@ import Text.ParserCombinators.Parsec hiding (Parser)
 
 import Control.Monad (unless)
 import Data.Char (toLower)
-import Data.List (elemIndex)
+import Data.List (elemIndex, foldl1')
 import Data.Maybe (fromJust, isJust, isNothing, fromMaybe)
 import Data.Ratio ((%))
 import Data.List.Extra (notNull)
@@ -104,7 +104,7 @@ parseChord = do
     notes <- sepBy1 parseNote spaces
     _     <- symbol "]"
     dur   <- parseDuration
-    let m = Value . Music $ foldl1 (:^) (map (Unit . (, fromJustDuration dur) . Just) notes)
+    let m = Value . Music $ foldl1' (:^) (map (Unit . (, fromJustDuration dur) . Just) notes)
     return m
 
 parseNote :: Parser Note

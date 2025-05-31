@@ -26,7 +26,7 @@ import Control.Monad.Trans.State (
 
 import Data.Bifunctor (second)
 import Data.Functor.Identity (Identity (runIdentity))
-import Data.List.Extra (snoc, sortBy)
+import Data.List.Extra (snoc, sortBy, foldl1')
 import Data.List (delete, find)
 import Data.Ord (comparing)
 
@@ -37,13 +37,13 @@ reify p = let -- As progressions can only consist of serial compositions, they c
               ps = foldP return (++) p
               -- Then, each analysis can be converted to a parallel composition to be folded over.
               ms = runIdentity $ evalStateT (mapM reify' ps) [base]
-          in foldl1 (:>) ms
+          in foldl1' (:>) ms
     where reify' :: TAnalysis -> State Music
           reify' (Analysis key vs, dur) = do
               shifts <- get
-              let key'  = foldl1 trans (key : shifts)
+              let key'  = foldl1' trans (key : shifts)
               let units = map (Unit . (, dur) . Just) (notes key' vs)
-              return (foldl1 (:^) units)
+              return (foldl1' (:^) units)
           reify' (Shift key ana, dur) = modify (`snoc` key) >> reify' (ana, dur)
 
 -- | Given a key and a set of variations, generates a set of constituent notes.

@@ -62,6 +62,7 @@ library
         Suihei
         Suihei.Control.Compiler
         Suihei.Control.Demarcation
+        Suihei.Control.Inference
         Suihei.Control.Interpreter
         Suihei.Control.Prelude
         Suihei.Control.Reification
