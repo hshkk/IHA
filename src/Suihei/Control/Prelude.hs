@@ -4,9 +4,10 @@
 module Suihei.Control.Prelude (
     inMode,
     Semitonal (..),
-    occurrences,
+    occurrences, notes,
     Trans (..),
-    scale, finite, relative,
+    scale, finite, 
+    relative, inverse,
     interval, secundal, tertian, quartal,
     triad,
     tetrad,
@@ -30,6 +31,8 @@ import Suihei.Data.Composition (
 
 import Data.Bifunctor (second, first)
 import Suihei.Data.Temporal (Temporal)
+import Data.Maybe (fromJust, catMaybes)
+import Data.List (find, elemIndex, nub)
 
 inMode :: Diatone -> Mode -> Semitone
 inMode dia Maj = [0, 2, 4, 5, 7, 9, 11] !! fromMod dia
@@ -53,6 +56,9 @@ occurrences = merge . foldM (ins . fst) (++) (++)
           merge = foldr (\(a, b) xs -> case lookup a xs of
                                            Just o  -> (a, o + b) : filter ((/= a) . fst) xs
                                            Nothing -> (a, b) : xs) []
+
+notes :: Music -> [Note]
+notes m = nub (catMaybes (foldM (return . fst) (++) (++) m))
 
 class Trans a where
     trans :: a -> Key -> a
@@ -122,6 +128,13 @@ finite = take 7 . scale
 relative :: Key -> Key
 relative key@(_, Maj) = (scale key !! 5, Min)
 relative key@(_, Min) = (scale key !! 2, Maj)
+
+-- | Computes the key required to transpose an arbitrary key down to I.
+inverse :: Key -> Key
+inverse key = let enh = fromJust (find ((0 ==) . fst) (finite key))
+                  dia = toMod (fromJust (enh `elemIndex` finite key))
+                  acc = negate (snd enh)
+              in ((dia, acc), snd key)
 
 -- | Computes an infinite list representing continuously stacked intervals.
 -- For instance, @interval 3@ returns an infinite list of continuously stacked thirds.

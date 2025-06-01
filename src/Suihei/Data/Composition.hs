@@ -16,9 +16,9 @@ import Suihei.Data.Notal (Note, TNote, pattern Rest, INote)
 import Suihei.Data.Temporal (Duration, Temporal)
 
 data Composition a
-    = U_ !a
-    | S_ !(Composition a) !(Composition a)
-    | P_ !(Composition a) !(Composition a)
+    = U_ a
+    | S_ (Composition a) (Composition a)
+    | P_ (Composition a) (Composition a)
     deriving Eq
 
 instance Functor Composition where

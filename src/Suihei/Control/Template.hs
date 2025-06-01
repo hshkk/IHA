@@ -6,27 +6,27 @@ module Suihei.Control.Template (
 
 import Suihei.Control.Prelude (
     Semitonal (pitchClassOf),
-    occurrences, rotatedBy, scale)
+    occurrences, rotatedBy, scale, notes)
 import Suihei.Control.Reification (reify)
 import Suihei.Data.Chromatic (Semitone, flat)
 import Suihei.Data.Chordal (
     Mode (..),
     Analysis, pattern Analysis,
     Variation (..),
-    pattern Dim, pattern Aug, base)
+    pattern Dim, pattern Aug, base, TAnalysis)
 import Suihei.Data.Composition (
     Total (duration),
     pattern Unit,
-    Music, Progression,
-    foldM)
-import Suihei.Data.Modular (toMod)
+    Music)
+
+import Suihei.Text.Prettyprinter ()
 
 import Data.Bifunctor (first)
-import Data.List (elemIndex, find, nub, sortBy)
-import Data.Maybe (fromMaybe, fromJust, catMaybes, mapMaybe, isNothing)
+import Data.List (find, sortBy, maximumBy)
+import Data.Maybe (fromMaybe)
 import Data.Tuple (swap)
 
-import Data.Ord (comparing)
+import Data.Ord (comparing, Down (Down))
 
 type Template = [Semitone]
 
@@ -37,39 +37,32 @@ type Vector = [(Semitone, Weight)]
 
 type Root = Semitone
 
--- TODO: Currently, labeling only works relative to 1 (in relative notation) as the tonic.
--- To fix this issue, either 1) key inference, or 2) manual key input is necessary.
-label :: Music -> (Score, Progression)
-label m = if rests m
-          then (minBound, Unit (Analysis base [], 0))
-          else
-            let highest = maximum (map (\p -> (score (weight m) p, p)) preference)
-                sc      = fst (fst highest)
-                likely  = first snd highest in
-            (sc, Unit (invert (realize likely m) m, duration m))
+label :: Music -> (Score, TAnalysis)
+label m = let w = weight m in
+          if null (occurrences m)
+          -- TODO: In the future, music only consisting of rests should error, reasonably.
+          then (minBound, (Analysis base [], 0)) -- If the music is a rest, return a value that will always be merged.
+          else let ((sc, r), t) = maximum $ map ((,) =<< score w) preference
+                   inv          = invert (realize (r, t) m) m
+               in (sc, (inv, duration m))
     where preference = [ MinorSeventh, MajorSeventh, FullDiminished, HalfDiminished, DominantSeventh
                        , AugmentedTriad, DiminishedTriad, MinorTriad, MajorTriad
                        , Fifth, Tritone
                        , MinorThird, MajorThird
                        , Atom ]
-          rests = foldM (isNothing . fst) (&&) (&&)
 
--- | Given the original music, and a progression, determines whether the progression should be inverted.
-invert :: Analysis
-       -> Music -- ^ Access to the original musical segment is required to generate the correct accidental.
-       -> Analysis
-invert ana@(Analysis key vs) m = if i == 1 
+invert :: Analysis -> Music -> Analysis
+invert ana@(Analysis key vs) m = if i == 1
                                  then ana
                                  else Analysis key (Inv i : vs)
-    where notes = nub $ catMaybes (foldM (return . fst) (++) (++) m)
-          lowermost = (snd . minimum . map swap) notes
-          constituents = map fst (mapMaybe fst $ foldM return undefined (++) (reify (Unit (ana, 0))))
+    where lowermost    = snd . minimum . map swap $ notes m
+          constituents = map fst . notes . reify $ Unit (ana, 0)
           i = if lowermost `elem` constituents
-              then head [i' | i' <- [1..length constituents], head (constituents `rotatedBy` (i' - 1)) == lowermost]
+              then head [i' | i' <- [1..length constituents]
+                            , head (constituents `rotatedBy` (i' - 1)) == lowermost]
               else 1
-invert _ _ = error "Control.Template: Unexpected analysis"
+invert _ _ = error "Control.Template: Unexpected shift"
 
--- | Generates an analysis given a root, the best-fit template, and the original music.
 realize :: (Root, Template)
         -> Music -- ^ Access to the original musical segment is required to generate the correct accidental.
         -> Analysis
@@ -90,33 +83,36 @@ realize (r, t) m
     | Atom            <- t = Analysis (enh, Maj) []           -- Defaults to major.
     | otherwise            = error "Control.Template: Empty template"
     where -- Collects the most prevalent (i.e. repeating) notes over the original music.
-          enhs = [enh' | (enh', w) <- sortBy (comparing snd <> comparing fst) $ occurrences m
-                       , w == (fst . maximum . map swap) (occurrences m)]
+          enhs = map fst (sortBy (comparing snd) $ occurrences m)
           -- Then, retrieves the appropriate accidental for the root.
-          enh = fromMaybe (head . scale $ (head enhs, Maj)) (find (\enh' -> pitchClassOf enh' == r) enhs)
+          -- If the computed root is omitted (could occur due to ambuigity), then default to the lowest note.
+          enh = fromMaybe (head . scale $ (head enhs, Maj)) 
+                          (find (\e -> pitchClassOf e == r) enhs)
 
 weight :: Music -> Vector
 weight = fill . map (first pitchClassOf) . occurrences
-    where fill w = [(s, fromMaybe (0 :: Int) (lookup s w))
+    where fill w = [(s, fromMaybe (0 :: Weight) (lookup s w))
                    | s <- [0..11]]
 
 score :: Vector -> Template -> (Score, Root)
 score w t =
-    let ts = take 12 (iterate (map succ) t)
-        ss = [(score' w t',
-               toMod (fromJust (t' `elemIndex` ts)))
-             | t' <- ts]
-    in maximum ss
+    let ts :: [Template]
+        ts = take 12 (iterate (map succ) t)
+        ss :: [(Score, Root)]
+        ss = zip (score' w <$> ts) [0..11]
+    in maximumBy (\s1 s2 -> comparing fst s1 s2 
+                         <> compare (Down $ snd s1) (Down $ snd s2)) ss
     where score' :: Vector -> Template -> Score
           score' []          _  = 0
-          score' ((s, c):w') t' = if s `elem` t'
-                                  then if c /= 0
-                                       -- Positive evidence:
-                                       then c + score' w' t'
-                                       -- Misses:
-                                       else -1 + score' w' t'
-                                  -- Negative evidence:
-                                  else -c + score' w' t'
+          score' ((s, w'):w'') t' = if s `elem` t'
+                                    then 
+                                        if w' /= 0
+                                        -- Positive evidence:
+                                        then w' + score' w'' t'
+                                        -- Misses:
+                                        else -1 + score' w'' t'
+                                    -- Negative evidence:
+                                    else -w' + score' w'' t'
 
 pattern Atom :: Template
 pattern Atom = [0]
