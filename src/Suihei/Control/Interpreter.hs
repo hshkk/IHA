@@ -62,7 +62,12 @@ effect (Out exp (Just key)) env =
 effect (Lily exp key file) env =
     let val = expression exp env in
     cout val key file
-effect eff _ = print eff
+effect (Anno exp key file) env =
+    let val = expression exp env
+        inf = expression (Infer exp key) env in
+        case (inf, val) of
+            (Progression p, Music m) -> cout (p, m) key file
+            _                        -> error "Control.Interpreter: Unexpected annotation result"
 
 expression :: Expression -> Environment -> Value
 
