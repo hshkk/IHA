@@ -18,5 +18,5 @@ import Data.List (foldl1')
 
 infer :: Music -> Key -> Progression
 infer m key = let m' = trans m (inverse key)
-                  ts = map (snd . label) (demarcate m') 
+                  ts = map (snd . label) (demarcate m')
               in foldl1' (:>) (map Unit ts)

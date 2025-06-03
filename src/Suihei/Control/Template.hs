@@ -41,7 +41,7 @@ label :: Music -> (Score, TAnalysis)
 label m = let w = weight m in
           if null (occurrences m)
           -- TODO: In the future, music only consisting of rests should error, reasonably.
-          then (minBound, (Analysis base [], 0)) -- If the music is a rest, return a value that will always be merged.
+          then (minBound, (Analysis base [], duration m)) -- If the music is a rest, return a value that will always be merged.
           else let ((sc, r), t) = maximum $ map ((,) =<< score w) preference
                    inv          = invert (realize (r, t) m) m
                in (sc, (inv, duration m))

@@ -71,10 +71,8 @@ library
         Suihei.Data.Chromatic
         Suihei.Data.Chordal
         Suihei.Data.Composition
-        Suihei.Data.HGraph
         Suihei.Data.Modular
         Suihei.Data.Notal
-        Suihei.Data.Probability
         Suihei.Data.Temporal
         Suihei.Text.Lexer
         Suihei.Text.Parser

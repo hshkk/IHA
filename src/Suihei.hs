@@ -11,7 +11,6 @@ module Suihei (
     module Suihei.Data.Composition,
     module Suihei.Data.Modular,
     module Suihei.Data.Notal,
-    module Suihei.Data.Probability,
     module Suihei.Text.Parser,
     module Suihei.Text.Prettyprinter
 ) where
@@ -28,6 +27,5 @@ import Suihei.Data.Chordal
 import Suihei.Data.Composition
 import Suihei.Data.Modular
 import Suihei.Data.Notal
-import Suihei.Data.Probability
 import Suihei.Text.Parser
 import Suihei.Text.Prettyprinter
